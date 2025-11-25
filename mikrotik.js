@@ -1,45 +1,120 @@
 // mikrotik.js
 const { RouterOSAPI } = require('node-routeros');
-require('dotenv').config();
+const config = require('./config/default');
+const logger = require('./utils/logger');
+const { metrics } = require('./middleware/metrics');
 
 const api = new RouterOSAPI({
-    host: process.env.MIKROTIK_HOST,
-    user: process.env.MIKROTIK_USER,
-    password: process.env.MIKROTIK_PASS,
-    port: parseInt(process.env.MIKROTIK_PORT) || 8728,
-    timeout: 20000
+    host: config.mikrotik.host,
+    user: config.mikrotik.user,
+    password: config.mikrotik.password,
+    port: config.mikrotik.port,
+    timeout: config.mikrotik.timeout
 });
 
 let connected = false;
 let reconnectAttempts = 0;
-const MAX_RECONNECT = 10;
+const MAX_RECONNECT = config.mikrotik.maxReconnectAttempts;
 
+/**
+ * Connect to MikroTik with exponential backoff
+ */
 async function connect() {
     while (reconnectAttempts < MAX_RECONNECT) {
         try {
             if (!connected) {
+                const startTime = Date.now();
                 await api.connect();
                 connected = true;
                 reconnectAttempts = 0;
-                console.log("MikroTik connected");
+                
+                const duration = (Date.now() - startTime) / 1000;
+                logger.mikrotik('Connected successfully', { 
+                    host: config.mikrotik.host,
+                    duration: `${duration.toFixed(2)}s`
+                });
             }
             return api;
         } catch (err) {
             connected = false;
             reconnectAttempts++;
+            
             const delay = Math.min(1000 * 2 ** reconnectAttempts, 30000);
-            console.error(`MikroTik connect failed (attempt ${reconnectAttempts}), retry in ${delay/1000}s`);
+            const errorType = err.code || 'unknown';
+            
+            logger.error('MikroTik connection failed', {
+                attempt: reconnectAttempts,
+                maxAttempts: MAX_RECONNECT,
+                retryIn: `${delay / 1000}s`,
+                error: err.message,
+                errorType
+            });
+
+            metrics.mikrotikApiErrors.labels(errorType).inc();
+            
             await new Promise(r => setTimeout(r, delay));
         }
     }
-    throw new Error("MikroTik connection failed after max retries");
+    
+    const error = new Error('MikroTik connection failed after max retries');
+    logger.error(error.message, { attempts: MAX_RECONNECT });
+    throw error;
 }
 
+/**
+ * Execute MikroTik API command with metrics tracking
+ */
 async function write(...args) {
-    await connect();
-    return api.write(...args);
+    const startTime = Date.now();
+    
+    try {
+        await connect();
+        const result = await api.write(...args);
+        
+        const duration = (Date.now() - startTime) / 1000;
+        metrics.mikrotikApiDuration.observe(duration);
+        
+        logger.mikrotik('API command executed', { 
+            command: args[0],
+            duration: `${duration.toFixed(3)}s`
+        });
+        
+        return result;
+    } catch (err) {
+        const duration = (Date.now() - startTime) / 1000;
+        const errorType = err.code || 'api_error';
+        
+        logger.error('MikroTik API command failed', {
+            command: args[0],
+            error: err.message,
+            duration: `${duration.toFixed(3)}s`
+        });
+        
+        metrics.mikrotikApiErrors.labels(errorType).inc();
+        connected = false; // Force reconnect on next call
+        
+        throw err;
+    }
 }
 
-process.on('exit', () => api.close?.());
+/**
+ * Close connection gracefully
+ */
+function close() {
+    if (connected) {
+        logger.mikrotik('Closing connection');
+        api.close?.();
+        connected = false;
+    }
+}
 
-module.exports = { write, close: () => api.close?.() };
+// Graceful shutdown
+process.on('exit', () => {
+    close();
+});
+
+process.on('SIGTERM', () => {
+    close();
+});
+
+module.exports = { write, close };
