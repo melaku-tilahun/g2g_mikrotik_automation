@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Put these FIRST -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sparkline@0.3.0/dist/sparkline.min.js"></script>
+  <!-- rest of your head -->
+<meta charset="UTF-8" />
+<title>GPON Monitor • Live Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>Chart</text></svg>">
+<style>
+    :root {
+        --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --text-light: #64748b;
+        --primary: #3b82f6; --success: #10b981; --danger: #ef4444; --border: #e2e8f0;
+        --shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+    [data-theme="dark"] {
+        --bg: #0f172a; --card: #1e293b; --text: #f1f5f9; --text-light: #94a3b8;
+        --primary: #60a5fa; --border: #334155; --shadow: 0 4px 6px -1px rgba(0,0,0,0.4);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+    .container { max-width: 100%; padding: 16px; margin: 0 auto; }
+    header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+    h1 { margin: 0; font-size: 26px; font-weight: 600; }
+    .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    input, select, button { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 14px; }
+    button { background: var(--primary); color: white; border: none; cursor: pointer; font-weight: 500; }
+    #themeToggle { width: 40px; height: 40px; padding: 0; font-size: 18px; }
+
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .stat { background: var(--card); padding: 16px; border-radius: 12px; box-shadow: var(--shadow); text-align: center; }
+    .stat h3 { margin: 0 0 6px; color: var(--text-light); font-size: 13px; font-weight: 500; }
+    .stat span { font-size: 28px; font-weight: 700; }
+    .active span { color: var(--success); } .inactive span { color: var(--danger); }
+
+    table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); font-size: 14px; table-layout: fixed; }
+    th, td { padding: 10px 8px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    th { background: var(--primary); color: white; font-weight: 600; cursor: pointer; user-select: none; }
+
+    th:nth-child(1), td:nth-child(1) { width: 16%; }
+    th:nth-child(2), td:nth-child(2) { width: 14%; }
+    th:nth-child(3), td:nth-child(3) { width: 10%; }
+    th:nth-child(4), td:nth-child(4) { width: 10%; }
+    th:nth-child(5), td:nth-child(5) { width: 12%; }
+    th:nth-child(6), td:nth-child(6) { width: 10%; }
+    th:nth-child(7), td:nth-child(7) { width: 16%; }
+    th:nth-child(8), td:nth-child(8) { width: 12%; text-align: center; }
+
+    .ip-cell { font-family: 'Consolas', monospace; font-size: 13px; }
+    tr.inactive { opacity: 0.6; background: rgba(0,0,0,0.03); }
+    [data-theme="dark"] tr.inactive { background: rgba(255,255,255,0.04); }
+    .threshold-input { width: 60px; text-align: center; }
+    .status-select { width: 100%; }
+    canvas.sparkline { width: 100% !important; height: 32px !important; }
+
+    .view-btn { background: none; border: none; cursor: pointer; font-size: 20px; padding: 4px 10px; color: var(--primary); opacity: 0.8; }
+    .view-btn:hover { opacity: 1; transform: scale(1.15); }
+
+    #saveStatus { margin: 12px 0; font-weight: 600; text-align: center; }
+
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(8px); }
+    .modal.active { display: flex; }
+    .modal-content { background: var(--card); border-radius: 16px; width: 95%; max-width: 1100px; max-height: 92vh; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+    .modal-header { padding: 20px 24px; background: var(--primary); color: white; display: flex; justify-content: space-between; align-items: center; }
+    .modal-header h2 { margin: 0; font-size: 22px; }
+    .close-btn { background: none; border: none; color: white; font-size: 32px; cursor: pointer; width: 44px; height: 44px; font-weight: 300; }
+    .chart-container { padding: 24px; height: calc(92vh - 100px); }
+
+    @media (max-width: 768px) {
+        .container { padding: 12px; } header { flex-direction: column; text-align: center; }
+        h1 { font-size: 22px; } table { font-size: 13px; } th, td { padding: 8px 4px; }
+        .stats { grid-template-columns: 1fr 1fr; }
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>GPON Network Monitor</h1>
+        <div class="controls">
+            <input type="text" id="search" placeholder="Search name or IP..." />
+            <button id="themeToggle">Moon</button>
+        </div>
+    </header>
+
+    <div id="saveStatus"></div>
+
+    <div class="stats">
+        <div class="stat active"><h3>Active</h3><span id="activeCount">0</span></div>
+        <div class="stat inactive"><h3>Inactive</h3><span id="inactiveCount">0</span></div>
+        <div class="stat"><h3>Total</h3><span id="totalCount">0</span></div>
+        <div class="stat"><h3>Last Update</h3><span id="lastUpdate">--:--</span></div>
+    </div>
+
+    <table id="gponTable">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>IP Address</th>
+                <th>RX</th>
+                <th>TX</th>
+                <th>Traffic</th>
+                <th>Threshold</th>
+                <th>Status</th>
+                <th>View</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<!-- Chart Modal -->
+<div id="chartModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitle">Traffic Chart</h2>
+            <button class="close-btn">×</button>
+        </div>
+        <div class="chart-container">
+            <canvas id="trafficChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+// API exactly as you want
+const API = "http://localhost:3000/api";
+
+let data = [];
+let pendingUpdates = {};
+let saveTimeout = null;
+let chartInstance = null;
+
+// Theme
+const themeToggle = document.getElementById('themeToggle');
+const setTheme = (dark) => {
+    document.documentElement.dataset.theme = dark ? 'dark' : '';
+    themeToggle.textContent = dark ? 'light' : 'dark';
+    localStorage.setItem('theme', dark ? 'dark' : 'light');
+};
+themeToggle.addEventListener('click', () => setTheme(document.documentElement.dataset.theme !== 'dark'));
+if (localStorage.getItem('theme') === 'dark') setTheme(true);
+
+// Load data
+async function loadData() {
+    try {
+        const res = await fetch(`${API}/queues`);
+        const json = await res.json();
+        data = json.queues || [];
+        render();
+        document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    } catch (err) {
+        document.getElementById('saveStatus').innerHTML = '<span style="color:red">Connection failed – check server</span>';
+    }
+}
+
+function render() {
+    const tbody = document.querySelector('#gponTable tbody');
+    const search = document.getElementById('search').value.toLowerCase();
+    tbody.innerHTML = '';
+
+    let active = 0, inactive = 0;
+    const filtered = data.filter(q => q.name.toLowerCase().includes(search) || q.ip.toLowerCase().includes(search));
+
+    filtered.forEach(q => {
+        if (q.status === 'Active') active++; else inactive++;
+
+        const tr = document.createElement('tr');
+        if (q.status !== 'Active') tr.classList.add('inactive');
+
+        const sparkValues = Array(20).fill(0).map(() => (q.rx + q.tx)/2000 + Math.random()*8);
+
+        tr.innerHTML = `
+            <td><strong>${q.name}</strong></td>
+            <td class="ip-cell" title="${q.ip}">${q.ip}</td>
+            <td>${(q.rx/1e6).toFixed(2)}M</td>
+            <td>${(q.tx/1e6).toFixed(2)}M</td>
+            <td><canvas class="sparkline" values="${sparkValues.join(',')}"></canvas></td>
+            <td><input type="number" class="threshold-input" value="${q.threshold || 10}" min="1" max="1000"></td>
+            <td>
+                <select class="status-select" data-name="${q.name}">
+                    <option value="Active" ${q.status==='Active'?'selected':''}>Active</option>
+                    <option value="Inactive" ${q.status==='Inactive'?'selected':''}>Inactive</option>
+                </select>
+            </td>
+            <td style="text-align:center">
+                <button class="view-btn" data-name="${q.name}" title="View 24h Chart">Chart</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    document.getElementById('activeCount').textContent = active;
+    document.getElementById('inactiveCount').textContent = inactive;
+    document.getElementById('totalCount').textContent = filtered.length;
+
+    bindEvents();
+    setTimeout(renderSparklines, 50);
+}
+
+function renderSparklines() {
+    document.querySelectorAll('.sparkline').forEach(canvas => {
+        const values = canvas.getAttribute('values').split(',').map(Number);
+        sparkline(canvas, values, { width: 80, height: 32, lineColor: 'var(--primary)', endColor: 'var(--success)' });
+    });
+}
+
+function bindEvents() {
+    document.querySelectorAll('.status-select, .threshold-input').forEach(el => {
+        el.onchange = el.oninput = scheduleSave;
+    });
+    document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.onclick = () => openChartModal(btn.dataset.name);
+    });
+}
+
+function scheduleSave() {
+    const row = this.closest('tr');
+    const name = row.querySelector('.status-select').dataset.name;
+    const status = row.querySelector('.status-select').value;
+    const threshold = parseInt(row.querySelector('.threshold-input').value) || 10;
+
+    pendingUpdates[name] = { status, threshold };
+    document.getElementById('saveStatus').textContent = 'Saving...';
+    document.getElementById('saveStatus').style.color = '#f59e0b';
+
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(async () => {
+        try {
+            await fetch(`${API}/statuses/bulk`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(pendingUpdates)
+            });
+            pendingUpdates = {};
+            document.getElementById('saveStatus').textContent = 'Saved successfully';
+            document.getElementById('saveStatus').style.color = '#10b981';
+            setTimeout(() => document.getElementById('saveStatus').textContent = '', 2000);
+        } catch {
+            document.getElementById('saveStatus').textContent = 'Save failed';
+            document.getElementById('saveStatus').style.color = 'red';
+        }
+    }, 800);
+}
+
+// Chart Modal
+async function openChartModal(name) {
+    const modal = document.getElementById('chartModal');
+    document.getElementById('modalTitle').textContent = `${name} — Last 24 Hours Traffic`;
+    modal.classList.add('active');
+
+    try {
+        const res = await fetch(`${API}/traffic/${encodeURIComponent(name)}`);
+        if (!res.ok) throw new Error('No data');
+        const { data } = await res.json();
+
+        const labels = data.map(p => new Date(p.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
+        const rxData = data.map(p => p.rx);
+        const txData = data.map(p => p.tx);
+
+        if (chartInstance) chartInstance.destroy();
+
+        chartInstance = new Chart(document.getElementById('trafficChart'), {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    { label: 'RX (KB/s)', data: rxData, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', tension: 0.3, fill: true },
+                    { label: 'TX (KB/s)', data: txData, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', tension: 0.3, fill: true }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'top' } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    } catch (err) {
+        document.getElementById('modalTitle').textContent = 'No traffic data yet (wait a few minutes)';
+    }
+}
+
+// Close modal
+document.querySelector('.close-btn').onclick = () => {
+    document.getElementById('chartModal').classList.remove('active');
+    if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+};
+document.getElementById('chartModal').onclick = (e) => {
+    if (e.target === document.getElementById('chartModal')) document.querySelector('.close-btn').click();
+};
+
+// Search + Refresh
+document.getElementById('search').addEventListener('input', render);
+setInterval(loadData, 12000);
+loadData();
+</script>
+</body>
+</html>
