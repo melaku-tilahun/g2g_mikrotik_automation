@@ -33,6 +33,10 @@ const config = {
         
         // Time to wait before sending second alert (in hours)
         secondAlertDelayHours: 1,
+
+        // Time to wait before sending recovery notification (in minutes)
+        // Prevents flapping (repetitive up/down alerts)
+        recoveryDelayMinutes: 1,
         
         // Enable recovery notifications when traffic returns to normal
         sendRecoveryNotifications: false,
@@ -55,6 +59,9 @@ const config = {
         },
         get secondAlertMs() {
             return config.alertConfig.secondAlertDelayHours * 60 * 60 * 1000;
+        },
+        get recoveryDelayMs() {
+            return config.alertConfig.recoveryDelayMinutes * 60 * 1000;
         },
         get defaultThreshold() {
             return config.alertConfig.defaultThreshold;

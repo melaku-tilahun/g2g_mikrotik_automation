@@ -30,7 +30,50 @@ const logger = winston.createLogger({
         new winston.transports.Console({
             format: winston.format.combine(
                 winston.format.colorize(),
-                logFormat
+                winston.format.printf(info => {
+                    const { timestamp, level, message, ...meta } = info;
+                    
+                    // ANSI Color Codes
+                    const colors = {
+                        reset: "\x1b[0m",
+                        cyan: "\x1b[36m",
+                        red: "\x1b[31m",
+                        yellow: "\x1b[33m",
+                        magenta: "\x1b[35m",
+                        blue: "\x1b[34m",
+                        green: "\x1b[32m",
+                        gray: "\x1b[90m"
+                    };
+
+                    // Add icons and colors based on level/message tags
+                    let icon = 'ℹ️';
+                    let color = colors.green; // Default info color
+
+                    if (level.includes('error')) { icon = '❌'; color = colors.red; }
+                    else if (level.includes('warn')) { icon = '⚠️'; color = colors.yellow; }
+                    else if (message.includes('[MONITOR]')) { icon = '📡'; color = colors.cyan; }
+                    else if (message.includes('[ALERT]')) { icon = '🚨'; color = colors.red; }
+                    else if (message.includes('[MIKROTIK]')) { icon = '🔌'; color = colors.magenta; }
+                    else if (message.includes('[DATABASE]')) { icon = '💾'; color = colors.blue; }
+                    
+                    // Clean up message tags if we have icons
+                    const cleanMessage = message
+                        .replace('[MONITOR]', '')
+                        .replace('[ALERT]', '')
+                        .replace('[MIKROTIK]', '')
+                        .replace('[DATABASE]', '')
+                        .trim();
+
+                    // Format: Timestamp [Icon] Level: Message (Colored)
+                    let log = `${colors.gray}${timestamp}${colors.reset} ${icon} ${level}: ${color}${cleanMessage}${colors.reset}`;
+                    
+                    if (Object.keys(meta).length > 0) {
+                        // Pretty print JSON on new lines
+                        log += `\n${colors.gray}${JSON.stringify(meta, null, 2).replace(/^/gm, '    ')}${colors.reset}`;
+                    }
+                    
+                    return log;
+                })
             )
         }),
         // Error log file

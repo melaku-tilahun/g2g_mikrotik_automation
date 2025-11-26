@@ -31,7 +31,7 @@ class AlertManager {
     restoreState() {
         try {
             const activeAlerts = db.prepare(`
-                SELECT name, start_time, notified_first, notified_second
+                SELECT name, start_time, first_alert_sent_at, notified_first, notified_second
                 FROM alerts
                 WHERE end_time IS NULL
             `).all();
@@ -39,6 +39,7 @@ class AlertManager {
             activeAlerts.forEach(alert => {
                 this.tracking.set(alert.name, {
                     first: alert.start_time * 1000,
+                    firstSentAt: alert.first_alert_sent_at ? alert.first_alert_sent_at * 1000 : null,
                     alerted: alert.notified_first === 1,
                     second: alert.notified_second === 1
                 });
@@ -74,26 +75,51 @@ class AlertManager {
                 });
             }
 
+            // If we were in recovery mode but traffic dropped again, reset recovery
+            if (track.recoveryStart) {
+                logger.info(`Traffic dropped again for ${name}, resetting recovery timer`, { traffic: totalKb });
+                track.recoveryStart = null;
+            }
+
             // Check if first alert should be sent
             if (!track.alerted && now - track.first >= config.monitoring.alertDelayMs) {
                 await this.sendFirstAlert(name, totalKb, target, threshold);
                 track.alerted = true;
+                track.firstSentAt = now;
             }
 
             // Check if second alert should be sent
-            if (track.alerted && !track.second && now - track.first >= config.monitoring.secondAlertMs) {
-                await this.sendSecondAlert(name, totalKb, target, threshold);
-                track.second = true;
+            // STRICT TIMING: Wait 1 hour AFTER the first alert was actually sent
+            if (track.alerted && !track.second && track.firstSentAt) {
+                if (now - track.firstSentAt >= config.monitoring.secondAlertMs) {
+                    await this.sendSecondAlert(name, totalKb, target, threshold);
+                    track.second = true;
+                }
             }
 
             this.tracking.set(name, track);
         } else {
             // Traffic is back above threshold
             if (track.first) {
-                await this.sendRecoveryNotification(name, totalKb, target);
-                this.resolveAlert(name);
+                // Check if we are already in recovery mode
+                if (!track.recoveryStart) {
+                    track.recoveryStart = now;
+                    logger.info(`Traffic above threshold for ${name}, starting recovery timer`, { traffic: totalKb });
+                }
+
+                // Check if recovery duration has passed
+                if (now - track.recoveryStart >= config.monitoring.recoveryDelayMs) {
+                    await this.sendRecoveryNotification(name, totalKb, target);
+                    this.resolveAlert(name);
+                    this.tracking.delete(name);
+                } else {
+                    // Update tracking with recovery start time
+                    this.tracking.set(name, track);
+                }
+            } else {
+                // No active alert, just clear tracking
+                this.tracking.delete(name);
             }
-            this.tracking.delete(name);
         }
     }
 
@@ -128,7 +154,7 @@ class AlertManager {
             // Update database
             db.prepare(`
                 UPDATE alerts 
-                SET notified_first = 1
+                SET notified_first = 1, first_alert_sent_at = unixepoch()
                 WHERE name = ? AND end_time IS NULL
             `).run(name);
 

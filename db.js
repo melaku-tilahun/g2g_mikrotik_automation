@@ -12,7 +12,7 @@ db.exec(`
 CREATE TABLE IF NOT EXISTS statuses (
     name TEXT PRIMARY KEY,
     status TEXT CHECK(status IN ('Active', 'Inactive')) DEFAULT 'Inactive',
-    threshold_kb INTEGER DEFAULT 5,
+    threshold_kb INTEGER DEFAULT NULL,
     updated_at INTEGER DEFAULT (unixepoch())
 );
 
@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS alerts (
     name TEXT,
     start_time INTEGER,
     end_time INTEGER,
+    first_alert_sent_at INTEGER,
     notified_first BOOLEAN DEFAULT 0,
     notified_second BOOLEAN DEFAULT 0
 );

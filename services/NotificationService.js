@@ -191,8 +191,21 @@ class NotificationService {
             extraInfo = '\n\n✅ Traffic restored to normal levels.';
         }
 
-        return `${emoji} <b>${title}: ${name}</b>\n\n` +
-               `📍 IP: ${ip}\n` +
+        // Helper to escape HTML special characters
+        const escapeHtml = (unsafe) => {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        };
+
+        const safeName = escapeHtml(name);
+        const safeIp = escapeHtml(ip);
+
+        return `${emoji} <b>${title}: ${safeName}</b>\n\n` +
+               `📍 IP: ${safeIp}\n` +
                `📊 Current Traffic: ${trafficKb.toFixed(2)} KB/s\n` +
                `📉 Threshold: ${threshold} KB/s\n` +
                `🕐 Time: ${new Date().toLocaleString()}` +
