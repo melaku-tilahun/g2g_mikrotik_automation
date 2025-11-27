@@ -6,9 +6,12 @@ const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
-const basicAuth = require('express-basic-auth');
+const cookieParser = require('cookie-parser');
 const { metricsMiddleware } = require('./middleware/metrics');
+const { authMiddleware, requireRole } = require('./middleware/authMiddleware');
 
+const authRouter = require('./routes/auth');
+const adminRouter = require('./routes/admin');
 const trafficRouter = require('./routes/traffic');
 const queuesRouter = require('./routes/queues');
 const statusesRouter = require('./routes/statuses');
@@ -29,7 +32,7 @@ app.use(helmet({
             fontSrc: ["'self'", 'https://fonts.gstatic.com'],
             connectSrc: ["'self'", '*'],
             imgSrc: ["'self'", 'data:'],
-            upgradeInsecureRequests: null  // Disable automatic HTTPS upgrade
+            upgradeInsecureRequests: null
         }
     }
 }));
@@ -48,9 +51,37 @@ app.use(compression());
 
 // Body parsing
 app.use(express.json({ limit: '1mb' }));
+app.use(cookieParser());
 
-// Static files
-app.use(express.static('public'));
+// API Routes
+app.use('/api/auth', authRouter);
+app.use('/api/admin', authMiddleware, adminRouter);
+app.use('/api/queues', authMiddleware, queuesRouter);
+app.use('/api/statuses', authMiddleware, statusesRouter);
+app.use('/api/traffic', authMiddleware, trafficRouter);
+app.use('/health', healthRouter);
+app.use('/metrics', metricsRouter);
+
+// Root Route - Redirect to Login (must be BEFORE static middleware)
+app.get('/', (req, res) => {
+    res.redirect('/login');
+});
+
+// Legacy Redirects
+app.get('/login.html', (req, res) => res.redirect('/login'));
+app.get('/index.html', (req, res) => res.redirect('/dashboard'));
+app.get('/admin.html', (req, res) => res.redirect('/admin'));
+
+// Static Assets
+app.use('/assets', express.static('public/assets'));
+
+// Public Views
+app.use('/login', express.static('public/login'));
+
+// Protected Views
+app.use('/profile', authMiddleware, express.static('public/profile'));
+app.use('/dashboard', authMiddleware, express.static('public/dashboard'));
+app.use('/admin', authMiddleware, requireRole('admin'), express.static('public/admin'));
 
 // Metrics collection
 app.use(metricsMiddleware);
@@ -64,7 +95,7 @@ app.use((req, res, next) => {
     next();
 });
 
-// Rate limiting - different limits for different endpoints
+// Rate limiting
 const apiLimiter = rateLimit({
     windowMs: config.rateLimit.windowMs,
     max: config.rateLimit.max,
@@ -79,26 +110,8 @@ const statusLimiter = rateLimit({
     message: { error: 'Too many status updates, please slow down' }
 });
 
-// Apply rate limiting
 app.use('/api', apiLimiter);
 app.use('/api/statuses', statusLimiter);
-
-// Optional Basic Auth for admin endpoints
-if (config.auth.enabled) {
-    app.use('/api/statuses', basicAuth({
-        users: { [config.auth.user]: config.auth.pass },
-        challenge: true,
-        realm: 'GPON Monitor Admin'
-    }));
-    logger.info('Basic authentication enabled for /api/statuses');
-}
-
-// Routes
-app.use('/api/queues', queuesRouter);
-app.use('/api/statuses', statusesRouter);
-app.use('/api/traffic', trafficRouter);
-app.use('/health', healthRouter);
-app.use('/metrics', metricsRouter);
 
 // 404 handler
 app.use((req, res) => {
@@ -119,20 +132,15 @@ app.use((err, req, res, next) => {
 const server = app.listen(config.server.port, () => {
     logger.info(`GPON Monitor running on http://localhost:${config.server.port}`);
     logger.info(`Environment: ${config.server.env}`);
-    logger.info(`Email alerts: ${config.email.user ? 'enabled' : 'disabled'}`);
-    logger.info(`Telegram alerts: ${config.telegram.enabled ? 'enabled' : 'disabled'}`);
 });
 
 // Graceful shutdown
 const gracefulShutdown = signal => {
     logger.info(`Received ${signal}, shutting down gracefully...`);
-    
     server.close(() => {
         logger.info('HTTP server closed');
         process.exit(0);
     });
-
-    // Force shutdown after 10 seconds
     setTimeout(() => {
         logger.error('Forced shutdown after timeout');
         process.exit(1);

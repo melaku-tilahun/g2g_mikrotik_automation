@@ -4,6 +4,7 @@ const router = express.Router();
 const db = require('../db');
 const logger = require('../utils/logger');
 const { validateStatusUpdate } = require('../middleware/validator');
+const { requireRole } = require('../middleware/authMiddleware');
 
 router.get('/', (req, res) => {
     try {
@@ -18,7 +19,8 @@ router.get('/', (req, res) => {
 });
 
 // Bulk update with validation - only handles status, threshold is hardcoded in config
-router.post('/bulk', validateStatusUpdate, (req, res) => {
+// Protected: Only admins can change status
+router.post('/bulk', requireRole('admin'), validateStatusUpdate, (req, res) => {
     const updates = req.body;
     
     if (typeof updates !== 'object' || updates === null) {
@@ -34,8 +36,8 @@ router.post('/bulk', validateStatusUpdate, (req, res) => {
     `);
 
     const auditStmt = db.prepare(`
-        INSERT INTO config_changes (name, field, old_value, new_value, changed_by)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO audit_logs (user_id, action, details, ip_address)
+        VALUES (?, ?, ?, ?)
     `);
 
     const transaction = db.transaction(() => {
@@ -50,10 +52,11 @@ router.post('/bulk', validateStatusUpdate, (req, res) => {
 
             // Log changes
             if (old && old.status !== status) {
-                auditStmt.run(name, 'status', old.status, status, req.ip || 'system');
+                const details = `Changed status of ${name} from ${old.status} to ${status}`;
+                auditStmt.run(req.user ? req.user.id : null, 'UPDATE_STATUS', details, req.ip);
             }
 
-            logger.info('Status updated', { name, status, ip: req.ip });
+            logger.info('Status updated', { name, status, ip: req.ip, user: req.user ? req.user.username : 'unknown' });
         }
     });
 

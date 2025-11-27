@@ -12,6 +12,20 @@ const api = new RouterOSAPI({
     timeout: config.mikrotik.timeout
 });
 
+// Prevent crash on unhandled error event
+api.on('error', (err) => {
+    logger.error('MikroTik API error event', { error: err.message });
+    connected = false;
+});
+
+// Handle disconnection
+api.on('close', () => {
+    if (connected) {
+        logger.mikrotik('MikroTik connection closed');
+        connected = false;
+    }
+});
+
 let connected = false;
 let reconnectAttempts = 0;
 const MAX_RECONNECT = config.mikrotik.maxReconnectAttempts;

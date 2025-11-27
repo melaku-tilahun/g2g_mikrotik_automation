@@ -87,6 +87,11 @@ const config = {
         pass: process.env.ADMIN_PASS
     },
 
+    jwt: {
+        secret: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production',
+        expiresIn: process.env.JWT_EXPIRES_IN || '24h'
+    },
+
     database: {
         path: process.env.DB_PATH || './gpon.db',
         backupEnabled: process.env.DB_BACKUP_ENABLED === 'true',

@@ -37,6 +37,57 @@ CREATE TABLE IF NOT EXISTS alerts (
 
 CREATE INDEX IF NOT EXISTS idx_traffic_name_time ON traffic_log(name, timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_alerts_active ON alerts(name, end_time) WHERE end_time IS NULL;
+
+CREATE TABLE IF NOT EXISTS profiles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    first_name TEXT,
+    last_name TEXT,
+    full_name TEXT,
+    role TEXT DEFAULT 'viewer' CHECK(role IN ('admin', 'user', 'viewer')),
+    created_at INTEGER DEFAULT (unixepoch()),
+    last_login INTEGER,
+    is_active BOOLEAN DEFAULT 1
+);
+
+CREATE INDEX IF NOT EXISTS idx_profiles_username ON profiles(username);
+CREATE INDEX IF NOT EXISTS idx_profiles_email ON profiles(email);
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    action TEXT NOT NULL,
+    details TEXT,
+    ip_address TEXT,
+    timestamp INTEGER DEFAULT (unixepoch()),
+    FOREIGN KEY(user_id) REFERENCES profiles(id)
+);
+
+CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at INTEGER DEFAULT (unixepoch())
+);
 `);
+
+// Migration: Add first_name and last_name columns if they don't exist
+try {
+    const columns = db.pragma('table_info(profiles)');
+    const hasFirstName = columns.some(c => c.name === 'first_name');
+    const hasLastName = columns.some(c => c.name === 'last_name');
+    
+    if (!hasFirstName) {
+        db.exec("ALTER TABLE profiles ADD COLUMN first_name TEXT");
+        console.log('Migrated: Added first_name column to profiles');
+    }
+    if (!hasLastName) {
+        db.exec("ALTER TABLE profiles ADD COLUMN last_name TEXT");
+        console.log('Migrated: Added last_name column to profiles');
+    }
+} catch (error) {
+    console.error('Migration error (first/last name):', error.message);
+}
 
 module.exports = db;
