@@ -7,8 +7,12 @@ const { write } = require('../mikrotik');
 router.get('/', async (req, res) => {
     try {
         const rows = await write('/queue/simple/print');
-        const statuses = Object.fromEntries(
-            db.prepare('SELECT name, status FROM statuses').all().map(r => [r.name, r.status])
+        const config = require('../config/default');
+        
+        // Get statuses and thresholds from DB
+        const dbData = Object.fromEntries(
+            db.prepare('SELECT name, status, threshold_kb FROM statuses').all()
+                .map(r => [r.name, { status: r.status, threshold: r.threshold_kb }])
         );
 
         const queues = rows
@@ -16,12 +20,15 @@ router.get('/', async (req, res) => {
             .map(q => {
                 const rate = q.rate || '0/0';
                 const [rx, tx] = rate.split('/').map(n => parseInt(n) || 0);
+                const dbInfo = dbData[q.name] || { status: 'Inactive', threshold: null };
+                
                 return {
                     name: q.name,
                     ip: q.target || 'N/A',
                     rx: rx,
                     tx: tx,
-                    status: statuses[q.name] || 'Inactive'
+                    status: dbInfo.status,
+                    threshold: dbInfo.threshold !== null ? dbInfo.threshold : config.alertConfig.defaultThreshold
                 };
             });
 

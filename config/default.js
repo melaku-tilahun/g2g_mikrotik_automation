@@ -25,14 +25,14 @@ const config = {
     // ALERT CONFIGURATION - Easy to modify
     // ============================================
     alertConfig: {
-        // Default traffic threshold in KB/s (0 = any traffic drop triggers alert)
-        defaultThreshold: 0,
+        // Default traffic threshold in KB/s (0.01 = near-complete traffic loss triggers alert)
+        defaultThreshold: 0.01,
         
         // Time to wait before sending first alert (in minutes)
         firstAlertDelayMinutes: 10,
         
         // Time to wait before sending second alert (in hours)
-        secondAlertDelayHours: 1,
+        secondAlertDelayHours: 3,
 
         // Time to wait before sending recovery notification (in minutes)
         // Prevents flapping (repetitive up/down alerts)
@@ -48,7 +48,7 @@ const config = {
         enableEmail: true,
         
         // Enable/disable Telegram notifications
-        enableTelegram: true
+        enableTelegram: false
     },
 
     monitoring: {

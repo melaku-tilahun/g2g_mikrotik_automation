@@ -678,8 +678,13 @@
           <td class="ip-cell ${isIPv6 ? 'ipv6' : 'ipv4'}" title="${q.ip}">${q.ip}</td>
           <td>${(q.rx / 1e6).toFixed(2)}M</td>
           <td>${(q.tx / 1e6).toFixed(2)}M</td>
-          <td><canvas class="sparkline" values="${spark.join(',')}"></canvas></td>
-          <td><span class="threshold-badge">0 KB/s</span></td>
+          <td>
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <span style="font-weight:600; font-size:12px;">Total: ${((q.rx + q.tx) / 1e6).toFixed(2)} M</span>
+              <canvas class="sparkline" values="${spark.join(',')}"></canvas>
+            </div>
+          </td>
+          <td><span class="threshold-badge">${q.threshold} KB/s</span></td>
           <td>${statusHtml}</td>
           <td style="text-align:center"><button class="view-btn" data-name="${q.name}">View</button></td>
         `;
@@ -726,7 +731,14 @@
       document.getElementById('chartModal').classList.add('active');
       try {
         const res = await fetch(`${API}/traffic/${encodeURIComponent(name)}`);
-        if (!res.ok) throw 0;
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          console.error("Expected JSON, got:", await res.text());
+          throw new Error("Invalid response format");
+        }
+
         const { data: points } = await res.json();
         const labels = points.map(p => new Date(p.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
         const rx = points.map(p => p.rx); const tx = points.map(p => p.tx);
@@ -739,7 +751,10 @@
             ]
           }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } }
         });
-      } catch { document.getElementById('modalTitle').textContent = 'No traffic data yet'; }
+      } catch (e) {
+        console.error(e);
+        document.getElementById('modalTitle').textContent = 'No traffic data yet';
+      }
     }
 
     document.querySelector('.close-btn').onclick = () => {
