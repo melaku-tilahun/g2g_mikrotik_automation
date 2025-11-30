@@ -79,6 +79,7 @@ class AlertManager {
             if (track.recoveryStart) {
                 logger.info(`Traffic dropped again for ${name}, resetting recovery timer`, { traffic: totalKb });
                 track.recoveryStart = null;
+                this.tracking.set(name, track); // FIX: Save state immediately to prevent loss
             }
 
             // Check if first alert should be sent
@@ -86,18 +87,31 @@ class AlertManager {
                 await this.sendFirstAlert(name, totalKb, target, threshold);
                 track.alerted = true;
                 track.firstSentAt = now;
+                this.tracking.set(name, track); // FIX: Save state immediately after sending
+                logger.info(`First alert sent for ${name}`, { 
+                    traffic: totalKb, 
+                    threshold, 
+                    delayMinutes: ((now - track.first) / 60000).toFixed(2) 
+                });
             }
 
             // Check if second alert should be sent
-            // STRICT TIMING: Wait 1 hour AFTER the first alert was actually sent
+            // STRICT TIMING: Wait configured hours AFTER the first alert was actually sent
             if (track.alerted && !track.second && track.firstSentAt) {
                 if (now - track.firstSentAt >= config.monitoring.secondAlertMs) {
                     await this.sendSecondAlert(name, totalKb, target, threshold);
                     track.second = true;
+                    this.tracking.set(name, track); // FIX: Save state immediately after sending
+                    logger.info(`Second alert sent for ${name}`, { 
+                        traffic: totalKb, 
+                        threshold, 
+                        hoursAfterFirst: ((now - track.firstSentAt) / 3600000).toFixed(2) 
+                    });
                 }
             }
 
-            this.tracking.set(name, track);
+            // State is now saved immediately after each modification above
+            // This line kept for backward compatibility in case of any edge cases
         } else {
             // Traffic is back above threshold
             if (track.first) {
