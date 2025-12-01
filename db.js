@@ -58,6 +58,7 @@ CREATE INDEX IF NOT EXISTS idx_profiles_email ON profiles(email);
 CREATE TABLE IF NOT EXISTS audit_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER,
+    username TEXT,
     action TEXT NOT NULL,
     details TEXT,
     ip_address TEXT,
@@ -72,11 +73,12 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 `);
 
-// Migration: Add first_name and last_name columns if they don't exist
+// Migration: Add columns if they don't exist
 try {
-    const columns = db.pragma('table_info(profiles)');
-    const hasFirstName = columns.some(c => c.name === 'first_name');
-    const hasLastName = columns.some(c => c.name === 'last_name');
+    // Profiles migrations
+    const profileColumns = db.pragma('table_info(profiles)');
+    const hasFirstName = profileColumns.some(c => c.name === 'first_name');
+    const hasLastName = profileColumns.some(c => c.name === 'last_name');
     
     if (!hasFirstName) {
         db.exec("ALTER TABLE profiles ADD COLUMN first_name TEXT");
@@ -86,8 +88,17 @@ try {
         db.exec("ALTER TABLE profiles ADD COLUMN last_name TEXT");
         console.log('Migrated: Added last_name column to profiles');
     }
+
+    // Audit logs migrations
+    const auditColumns = db.pragma('table_info(audit_logs)');
+    const hasUsername = auditColumns.some(c => c.name === 'username');
+    
+    if (!hasUsername) {
+        db.exec("ALTER TABLE audit_logs ADD COLUMN username TEXT");
+        console.log('Migrated: Added username column to audit_logs');
+    }
 } catch (error) {
-    console.error('Migration error (first/last name):', error.message);
+    console.error('Migration error:', error.message);
 }
 
 module.exports = db;

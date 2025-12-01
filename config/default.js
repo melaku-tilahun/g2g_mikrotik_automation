@@ -48,7 +48,7 @@ const config = {
         enableEmail: true,
         
         // Enable/disable Telegram notifications
-        enableTelegram: false
+        enableTelegram: true
     },
 
     monitoring: {

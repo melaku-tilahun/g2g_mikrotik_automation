@@ -17,9 +17,11 @@ const queuesRouter = require('./routes/queues');
 const statusesRouter = require('./routes/statuses');
 const healthRouter = require('./routes/health');
 const metricsRouter = require('./routes/metrics');
+const allQueuesRouter = require('./routes/all-queues');
 
 require('./monitor'); // Start monitoring
-
+const allQueuesMonitor = require('./services/AllQueuesMonitor');
+allQueuesMonitor.start();
 const app = express();
 
 // Security middleware
@@ -59,6 +61,7 @@ app.use('/api/admin', authMiddleware, adminRouter);
 app.use('/api/queues', authMiddleware, queuesRouter);
 app.use('/api/statuses', authMiddleware, statusesRouter);
 app.use('/api/traffic', authMiddleware, trafficRouter);
+app.use('/api/all-queues', authMiddleware, allQueuesRouter);
 app.use('/health', healthRouter);
 app.use('/metrics', metricsRouter);
 
@@ -81,6 +84,7 @@ app.use('/login', express.static('public/login'));
 // Protected Views
 app.use('/profile', authMiddleware, express.static('public/profile'));
 app.use('/dashboard', authMiddleware, express.static('public/dashboard'));
+app.use('/all-queues', authMiddleware, express.static('public/all-queues'));
 app.use('/admin', authMiddleware, requireRole('admin'), express.static('public/admin'));
 
 // Metrics collection
