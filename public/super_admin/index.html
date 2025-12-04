@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>GPON Monitor • Super Admin Panel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f5f7fa;
+            --card: #ffffff;
+            --text: #1a202c;
+            --text-light: #718096;
+            --primary: #4f46e5;
+            --primary-light: #6366f1;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --border: #e2e8f0;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+        }
+
+        [data-theme="dark"] {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f1f5f9;
+            --text-light: #94a3b8;
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --border: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            padding: 24px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .nav-link:hover {
+            color: var(--primary);
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .card h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            font-weight: 600;
+            color: var(--text-light);
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        select,
+        input,
+        button {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-family: inherit;
+        }
+
+        input {
+            width: 100%;
+        }
+
+        button {
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-light);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .btn-danger:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 12px;
+            margin-right: 4px;
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge.active {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .badge.inactive {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            background: var(--card);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            transform: translateY(100px);
+            transition: transform 0.3s;
+            z-index: 3000;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--danger);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(2px);
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .modal-header {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .modal-actions button {
+            flex: 1;
+        }
+
+        .super-admin-badge {
+            background: linear-gradient(135deg, #ec4899, #8b5cf6);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🛡️ Super Admin Panel</h1>
+            <div class="nav-links">
+                <a href="/dashboard" class="nav-link">← Back to Dashboard</a>
+                <button id="themeToggle">Dark</button>
+            </div>
+        </header>
+
+        <div class="card">
+            <h2>
+                User Management <span class="super-admin-badge">Full Access</span>
+                <div>
+                    <button type="button" id="btnCreateUser" class="btn-primary" style="margin-right: 8px;">+ Create
+                        User</button>
+                    <button type="button" id="btnRefreshUsers" class="btn-primary"
+                        style="font-size: 12px;">Refresh</button>
+                </div>
+            </h2>
+            <div style="overflow-x: auto;">
+                <table id="usersTable">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Name</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Audit Logs <button type="button" id="btnRefreshLogs" class="btn-primary"
+                    style="font-size: 12px;">Refresh</button>
+            </h2>
+            <div style="overflow-x: auto;">
+                <table id="logsTable">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>User</th>
+                            <th>Action</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <!-- Create/Edit User Modal -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header" id="modalTitle">Create New User</div>
+            <form id="userForm">
+                <div class="form-group">
+                    <label for="username">Username *</label>
+                    <input type="text" id="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email *</label>
+                    <input type="email" id="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="first_name">First Name</label>
+                    <input type="text" id="first_name">
+                </div>
+                <div class="form-group">
+                    <label for="last_name">Last Name</label>
+                    <input type="text" id="last_name">
+                </div>
+                <div class="form-group" id="passwordGroup">
+                    <label for="password">Password *</label>
+                    <input type="password" id="password" minlength="6">
+                </div>
+                <div class="form-group">
+                    <label for="role">Role *</label>
+                    <select id="role" required>
+                        <option value="viewer">Viewer</option>
+                        <option value="admin">Admin</option>
+                        <option value="super_admin">Super Admin</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel-modal">Cancel</button>
+                    <button type="submit" class="btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Reset Password Modal -->
+    <div id="passwordModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Reset Password</div>
+            <form id="passwordForm">
+                <div class="form-group">
+                    <label for="newPassword">New Password *</label>
+                    <input type="password" id="newPassword" required minlength="6">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel-modal">Cancel</button>
+                    <button type="submit" class="btn-primary">Reset Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API = '/api/admin';
+        let currentUser = null;
+        let editingUserId = null;
+        let resetPasswordUserId = null;
+
+        // Theme
+        const themeToggle = document.getElementById('themeToggle');
+        const setTheme = dark => {
+            document.documentElement.dataset.theme = dark ? 'dark' : '';
+            themeToggle.textContent = dark ? 'Light' : 'Dark';
+            localStorage.setItem('theme', dark ? 'dark' : 'light');
+        };
+        themeToggle.addEventListener('click', () => setTheme(document.documentElement.dataset.theme !== 'dark'));
+        if (localStorage.getItem('theme') === 'dark') setTheme(true);
+
+        // Toast
+        function showToast(msg, type = 'success') {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = `toast show ${type}`;
+            setTimeout(() => t.className = 'toast', 3000);
+        }
+
+        // Auth Check
+        async function checkAuth() {
+            try {
+                const res = await fetch('/api/auth/me');
+                if (!res.ok) throw new Error();
+                const { user } = await res.json();
+                if (user.role !== 'super_admin') {
+                    window.location.href = '/';
+                    return;
+                }
+                currentUser = user;
+                loadUsers();
+                loadLogs();
+            } catch {
+                window.location.href = '/login';
+            }
+        }
+
+        // Helper to escape strings for HTML attributes
+        function escapeAttr(str) {
+            if (!str) return '';
+            return str.replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+        }
+
+        // Load Users
+        async function loadUsers() {
+            try {
+                const res = await fetch(`${API}/users`);
+                const { users } = await res.json();
+                const tbody = document.querySelector('#usersTable tbody');
+                tbody.innerHTML = users.map(u => {
+                    const safeUser = JSON.stringify(u).replace(/"/g, '&quot;');
+                    return `
+                    <tr>
+                        <td>
+                            <div style="font-weight: 600;">${u.username}</div>
+                        </td>
+                        <td>${u.email}</td>
+                        <td style="font-size: 13px;">${u.first_name || ''} ${u.last_name || ''}</td>
+                        <td>
+                            <select class="role-select" data-userid="${u.id}" ${u.id === currentUser.id ? 'disabled' : ''}>
+                                <option value="super_admin" ${u.role === 'super_admin' ? 'selected' : ''}>Super Admin</option>
+                                <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
+                                <option value="viewer" ${u.role === 'viewer' ? 'selected' : ''}>Viewer</option>
+                            </select>
+                        </td>
+                        <td>
+                            <span class="badge ${u.is_active ? 'active' : 'inactive'}">${u.is_active ? 'Active' : 'Disabled'}</span>
+                        </td>
+                        <td>${new Date(u.created_at * 1000).toLocaleDateString()}</td>
+                        <td>
+                            ${u.id !== currentUser.id ? `
+                                <button class="btn-primary btn-small btn-edit" data-user="${safeUser}">Edit</button>
+                                <button class="btn-primary btn-small btn-reset-pwd" data-userid="${u.id}" data-username="${escapeAttr(u.username)}">Reset Pwd</button>
+                                <button class="btn-danger btn-small btn-toggle" data-userid="${u.id}" data-active="${u.is_active}">
+                                    ${u.is_active ? 'Disable' : 'Enable'}
+                                </button>
+                                <button class="btn-danger btn-small btn-delete" data-userid="${u.id}" data-username="${escapeAttr(u.username)}">Delete</button>
+                            ` : '<span style="color: var(--text-light); font-size: 12px;">Current User</span>'}
+                        </td>
+                    </tr>
+                `}).join('');
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to load users', 'error');
+            }
+        }
+
+        // Event Delegation for Table Actions
+        document.querySelector('#usersTable tbody').addEventListener('click', (e) => {
+            const target = e.target;
+
+            if (target.classList.contains('btn-edit')) {
+                const user = JSON.parse(target.dataset.user);
+                openEditUserModal(user);
+            } else if (target.classList.contains('btn-reset-pwd')) {
+                openResetPasswordModal(target.dataset.userid);
+            } else if (target.classList.contains('btn-toggle')) {
+                toggleUser(target.dataset.userid);
+            } else if (target.classList.contains('btn-delete')) {
+                deleteUser(target.dataset.userid, target.dataset.username);
+            }
+        });
+
+        document.querySelector('#usersTable tbody').addEventListener('change', (e) => {
+            if (e.target.classList.contains('role-select')) {
+                updateRole(e.target.dataset.userid, e.target.value);
+            }
+        });
+
+        // Static Button Listeners
+        document.getElementById('btnCreateUser').addEventListener('click', openCreateUserModal);
+        document.getElementById('btnRefreshUsers').addEventListener('click', loadUsers);
+        document.getElementById('btnRefreshLogs').addEventListener('click', loadLogs);
+
+        document.querySelectorAll('.btn-cancel-modal').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+            });
+        });
+
+        // Create User Modal
+        function openCreateUserModal() {
+            editingUserId = null;
+            document.getElementById('modalTitle').textContent = 'Create New User';
+            document.getElementById('userForm').reset();
+            document.getElementById('passwordGroup').style.display = 'block';
+            document.getElementById('password').required = true;
+            document.getElementById('userModal').classList.add('active');
+        }
+
+        // Edit User Modal
+        function openEditUserModal(user) {
+            editingUserId = user.id;
+            document.getElementById('modalTitle').textContent = 'Edit User';
+            document.getElementById('username').value = user.username;
+            document.getElementById('email').value = user.email;
+            document.getElementById('first_name').value = user.first_name || '';
+            document.getElementById('last_name').value = user.last_name || '';
+            document.getElementById('role').value = user.role;
+            document.getElementById('passwordGroup').style.display = 'none';
+            document.getElementById('password').required = false;
+            document.getElementById('userModal').classList.add('active');
+        }
+
+        // User Form Submit
+        document.getElementById('userForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = {
+                username: document.getElementById('username').value,
+                email: document.getElementById('email').value,
+                first_name: document.getElementById('first_name').value,
+                last_name: document.getElementById('last_name').value,
+                role: document.getElementById('role').value
+            };
+
+            if (!editingUserId) {
+                formData.password = document.getElementById('password').value;
+            }
+
+            try {
+                const url = editingUserId ? `${API}/users/${editingUserId}` : `${API}/users`;
+                const method = editingUserId ? 'PUT' : 'POST';
+                const res = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.error || 'Operation failed');
+                }
+
+                showToast(editingUserId ? 'User updated successfully' : 'User created successfully');
+                document.getElementById('userModal').classList.remove('active');
+                loadUsers();
+                loadLogs();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        });
+
+        // Reset Password Modal
+        function openResetPasswordModal(id) {
+            resetPasswordUserId = id;
+            document.getElementById('newPassword').value = '';
+            document.getElementById('passwordModal').classList.add('active');
+        }
+
+        document.getElementById('passwordForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const password = document.getElementById('newPassword').value;
+
+            try {
+                const res = await fetch(`${API}/users/${resetPasswordUserId}/password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.error || 'Failed to reset password');
+                }
+
+                showToast('Password reset successfully');
+                document.getElementById('passwordModal').classList.remove('active');
+                loadLogs();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        });
+
+        // Update Role
+        async function updateRole(id, role) {
+            try {
+                const res = await fetch(`${API}/users/${id}/role`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ role })
+                });
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.error || 'Failed to update role');
+                }
+                showToast('Role updated');
+                loadUsers();
+                loadLogs();
+            } catch (err) {
+                showToast(err.message, 'error');
+                loadUsers();
+            }
+        }
+
+        // Toggle User
+        async function toggleUser(id) {
+            if (!confirm('Are you sure you want to change this user\'s status?')) return;
+            try {
+                const res = await fetch(`${API}/users/${id}/toggle`, { method: 'POST' });
+                if (!res.ok) throw new Error();
+                showToast('User status updated');
+                loadUsers();
+                loadLogs();
+            } catch {
+                showToast('Failed to update user', 'error');
+            }
+        }
+
+        // Delete User
+        async function deleteUser(id, username) {
+            if (!confirm(`Are you sure you want to DELETE user "${username}"? This action cannot be undone.`)) return;
+            try {
+                const res = await fetch(`${API}/users/${id}`, { method: 'DELETE' });
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.error || 'Failed to delete user');
+                }
+                showToast('User deleted successfully');
+                loadUsers();
+                loadLogs();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        // Load Logs
+        async function loadLogs() {
+            try {
+                const res = await fetch(`${API}/audit-logs`);
+                const { logs } = await res.json();
+                const tbody = document.querySelector('#logsTable tbody');
+                tbody.innerHTML = logs.map(l => {
+                    // Format details to be human-readable
+                    let formattedDetails = l.details;
+                    try {
+                        // Try to parse JSON and make it readable
+                        const jsonMatch = l.details.match(/\{.*\}/);
+                        if (jsonMatch) {
+                            const parsed = JSON.parse(jsonMatch[0]);
+                            // Create human-readable text
+                            const parts = [];
+                            if (parsed.username) parts.push(`User: ${parsed.username}`);
+                            if (parsed.role) parts.push(`Role: ${parsed.role}`);
+                            if (parsed.newRole) parts.push(`New Role: ${parsed.newRole}`);
+                            if (parsed.status !== undefined) parts.push(`Status: ${parsed.status ? 'Active' : 'Disabled'}`);
+                            formattedDetails = parts.length > 0 ? parts.join(', ') : l.details;
+                        }
+                    } catch (e) {
+                        // If parsing fails, use original details
+                        formattedDetails = l.details;
+                    }
+                    
+                    return `
+                    <tr>
+                        <td style="white-space: nowrap; font-size: 12px;">
+                            ${new Date(l.timestamp * 1000).toLocaleString()}
+                        </td>
+                        <td><strong>${l.username || 'Unknown'}</strong></td>
+                        <td><span class="badge active" style="background: rgba(79, 70, 229, 0.1); color: var(--primary); border: none;">${l.action}</span></td>
+                        <td style="font-size: 13px;">${formattedDetails}</td>
+                    </tr>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        checkAuth();
+    </script>
+</body>
+
+</html>

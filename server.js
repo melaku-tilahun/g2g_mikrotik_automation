@@ -12,12 +12,14 @@ const { authMiddleware, requireRole } = require('./middleware/authMiddleware');
 
 const authRouter = require('./routes/auth');
 const adminRouter = require('./routes/admin');
+const adminLimitedRouter = require('./routes/admin-limited');
 const trafficRouter = require('./routes/traffic');
 const queuesRouter = require('./routes/queues');
 const statusesRouter = require('./routes/statuses');
 const healthRouter = require('./routes/health');
 const metricsRouter = require('./routes/metrics');
 const allQueuesRouter = require('./routes/all-queues');
+const ipAddressesRouter = require('./routes/ip-addresses');
 
 require('./monitor'); // Start monitoring
 const allQueuesMonitor = require('./services/AllQueuesMonitor');
@@ -58,10 +60,12 @@ app.use(cookieParser());
 // API Routes
 app.use('/api/auth', authRouter);
 app.use('/api/admin', authMiddleware, adminRouter);
+app.use('/api/admin-panel', authMiddleware, adminLimitedRouter); 
 app.use('/api/queues', authMiddleware, queuesRouter);
 app.use('/api/statuses', authMiddleware, statusesRouter);
 app.use('/api/traffic', authMiddleware, trafficRouter);
 app.use('/api/all-queues', authMiddleware, allQueuesRouter);
+app.use('/api/ip-addresses', authMiddleware, ipAddressesRouter);
 app.use('/health', healthRouter);
 app.use('/metrics', metricsRouter);
 
@@ -85,7 +89,9 @@ app.use('/login', express.static('public/login'));
 app.use('/profile', authMiddleware, express.static('public/profile'));
 app.use('/dashboard', authMiddleware, express.static('public/dashboard'));
 app.use('/all-queues', authMiddleware, express.static('public/all-queues'));
-app.use('/admin', authMiddleware, requireRole('admin'), express.static('public/admin'));
+app.use('/ip-addresses', authMiddleware, express.static('public/ip-addresses'));
+app.use('/super_admin', authMiddleware, requireRole('super_admin'), express.static('public/super_admin'));
+app.use('/admin-panel', authMiddleware, requireRole('admin'), express.static('public/admin-panel'));
 
 // Metrics collection
 app.use(metricsMiddleware);

@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>IP Address Monitor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌐</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #f5f7fa;
+            --card: #ffffff;
+            --text: #1a202c;
+            --text-light: #718096;
+            --primary: #4f46e5;
+            --primary-light: #6366f1;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --border: #e2e8f0;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+        }
+
+        [data-theme="dark"] {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f1f5f9;
+            --text-light: #94a3b8;
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --border: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 100%;
+            padding: 16px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        h1 {
+            font-size: 26px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 13px;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-back {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white;
+        }
+
+        .btn-back:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        input,
+        button,
+        select {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            color: var(--text);
+            font-size: 13px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        button {
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        #themeToggle {
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            font-size: 18px;
+            border-radius: 50%;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .stat {
+            background: var(--card);
+            padding: 14px;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .stat h3 {
+            color: var(--text-light);
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .stat span {
+            font-size: 24px;
+            font-weight: 700;
+            display: block;
+            color: var(--primary);
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding: 12px;
+            background: var(--card);
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .pagination-info {
+            font-size: 13px;
+            color: var(--text-light);
+        }
+
+        .pagination-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .pagination-controls button {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .pagination-controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination-controls select {
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        table {
+            width: 100%;
+            min-width: 800px;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: var(--card);
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            font-size: 12px;
+            border: 1px solid var(--border);
+        }
+
+        th,
+        td {
+            padding: 10px 8px;
+            text-align: left;
+        }
+
+        th {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white;
+            font-weight: 600;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid var(--border);
+            transition: background 0.2s;
+        }
+
+        tbody tr:hover {
+            background: rgba(79, 70, 229, 0.05);
+        }
+
+        tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge.active {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .badge.inactive {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .btn-icon {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            font-size: 16px;
+            transition: all 0.2s;
+            border-radius: 4px;
+        }
+
+        .btn-icon:hover {
+            background: rgba(79, 70, 229, 0.1);
+        }
+
+        .btn-icon.delete:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        #saveStatus {
+            margin: 10px 0;
+            padding: 8px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 12px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-light);
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+
+        .modal-close:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--card);
+            color: var(--text);
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 4px;
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        .form-check {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-check input[type="checkbox"] {
+            width: auto;
+            cursor: pointer;
+        }
+
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .btn-modal {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-modal.primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-modal.primary:hover {
+            background: var(--primary-light);
+        }
+
+        .btn-modal.secondary {
+            background: transparent;
+            color: var(--text-light);
+            border: 1px solid var(--border);
+        }
+
+        .btn-modal.secondary:hover {
+            background: var(--bg);
+        }
+
+        .btn-modal.danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-modal.danger:hover {
+            background: #dc2626;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 22px;
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            th,
+            td {
+                padding: 8px 4px;
+                font-size: 11px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>IP Address Monitor</h1>
+            <div class="controls">
+                <button id="addIpBtn" class="btn btn-success" style="display: none;">➕ Add IP</button>
+                <a href="/dashboard" class="btn btn-back">← Dashboard</a>
+                <input type="text" id="search" placeholder="Search..." />
+                <button id="themeToggle">🌙</button>
+            </div>
+        </header>
+
+        <div id="saveStatus"></div>
+
+        <div class="stats">
+            <div class="stat">
+                <h3>Total IPs</h3><span id="totalCount">0</span>
+            </div>
+            <div class="stat">
+                <h3>Enabled</h3><span id="enabledCount" style="color: var(--success)">0</span>
+            </div>
+            <div class="stat">
+                <h3>Disabled</h3><span id="disabledCount" style="color: var(--danger)">0</span>
+            </div>
+            <div class="stat">
+                <h3>Showing</h3><span id="showingCount" style="font-size:20px;">0</span>
+            </div>
+            <div class="stat">
+                <h3>Updated</h3><span id="lastUpdate" style="font-size:16px;">--:--</span>
+            </div>
+        </div>
+
+        <div class="pagination">
+            <div class="pagination-info"><span id="paginationInfo">Page 1 of 1</span></div>
+            <div class="pagination-controls">
+                <button id="prevPage">← Prev</button>
+                <select id="pageSize">
+                    <option value="25">25/page</option>
+                    <option value="50" selected>50/page</option>
+                    <option value="100">100/page</option>
+                </select>
+                <button id="nextPage">Next →</button>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table id="ipsTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Address</th>
+                        <th>Network</th>
+                        <th>Interface</th>
+                        <th>Status</th>
+                        <th>Comment</th>
+                        <th id="actionsHeader" style="display:none;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add IP Modal -->
+    <div id="addIpModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New IP Address</h2>
+                <button class="modal-close" data-target="addIpModal">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="addIpForm">
+                    <div class="form-group">
+                        <label for="ipAddress">IP Address (CIDR) *</label>
+                        <input type="text" id="ipAddress" placeholder="e.g., 192.168.1.10/24" required>
+                        <small>Use CIDR notation (e.g., 192.168.1.10/24)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="ipInterface">Interface *</label>
+                        <select id="ipInterface" required>
+                            <option value="">Select interface...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="ipComment">Comment</label>
+                        <input type="text" id="ipComment" placeholder="Optional description">
+                    </div>
+                    <div class="form-group">
+                        <div class="form-check">
+                            <input type="checkbox" id="ipDisabled">
+                            <label for="ipDisabled">Disabled</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal secondary" data-target="addIpModal">Cancel</button>
+                <button class="btn-modal primary" id="submitAddIpBtn">Add IP Address</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit IP Modal -->
+    <div id="editIpModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit IP Address</h2>
+                <button class="modal-close" data-target="editIpModal">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="editIpForm">
+                    <input type="hidden" id="editIpId">
+                    <div class="form-group">
+                        <label>IP Address</label>
+                        <input type="text" id="editIpAddress" readonly disabled style="opacity: 0.6;">
+                        <small>IP address cannot be changed</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="editIpComment">Comment</label>
+                        <input type="text" id="editIpComment" placeholder="Optional description">
+                    </div>
+                    <div class="form-group">
+                        <div class="form-check">
+                            <input type="checkbox" id="editIpDisabled">
+                            <label for="editIpDisabled">Disabled</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal secondary" data-target="editIpModal">Cancel</button>
+                <button class="btn-modal primary" id="submitEditIpBtn">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteIpModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Delete IP Address</h2>
+                <button class="modal-close" data-target="deleteIpModal">×</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this IP address?</p>
+                <p style="margin-top: 10px; font-weight: 600; color: var(--danger);" id="deleteIpAddress"></p>
+                <p style="margin-top: 10px; font-size: 13px; color: var(--text-light);">This action cannot be undone.
+                </p>
+                <input type="hidden" id="deleteIpId">
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal secondary" data-target="deleteIpModal">Cancel</button>
+                <button class="btn-modal danger" id="confirmDeleteIpBtn">Delete IP</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = `http://${window.location.hostname}:3000/api`;
+        let data = [];
+        let currentUser = null;
+        let currentPage = 1;
+        let pageSize = 50;
+        let pagination = {};
+        let searchTimeout = null;
+
+        // --- Auth & Init ---
+        async function checkAuth() {
+            try {
+                const res = await fetch(`${API}/auth/me`);
+                if (!res.ok) { window.location.href = '/login'; return; }
+                const { user } = await res.json();
+                currentUser = user;
+
+                if (user.role === 'admin' || user.role === 'super_admin') {
+                    document.getElementById('addIpBtn').style.display = 'inline-block';
+                    document.getElementById('actionsHeader').style.display = 'table-cell';
+                }
+            } catch (err) {
+                window.location.href = '/login';
+            }
+        }
+        checkAuth();
+
+        // --- Theme ---
+        const themeToggle = document.getElementById('themeToggle');
+        const setTheme = dark => {
+            document.documentElement.dataset.theme = dark ? 'dark' : '';
+            themeToggle.textContent = dark ? '☀️' : '🌙';
+            localStorage.setItem('theme', dark ? 'dark' : 'light');
+        };
+        themeToggle.addEventListener('click', () => setTheme(document.documentElement.dataset.theme !== 'dark'));
+        if (localStorage.getItem('theme') === 'dark') setTheme(true);
+
+        // --- Pagination & Search ---
+        document.getElementById('prevPage').addEventListener('click', () => {
+            if (pagination.hasPrev) { currentPage--; loadData(); }
+        });
+        document.getElementById('nextPage').addEventListener('click', () => {
+            if (pagination.hasNext) { currentPage++; loadData(); }
+        });
+        document.getElementById('pageSize').addEventListener('change', (e) => {
+            pageSize = parseInt(e.target.value);
+            currentPage = 1;
+            loadData();
+        });
+        document.getElementById('search').addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => { currentPage = 1; loadData(); }, 500);
+        });
+
+        // --- Data Loading ---
+        async function loadData() {
+            try {
+                const search = document.getElementById('search').value;
+                const url = `${API}/ip-addresses?page=${currentPage}&limit=${pageSize}&search=${encodeURIComponent(search)}`;
+                const res = await fetch(url, { cache: "no-store" });
+                if (res.status === 401) { window.location.href = '/login'; return; }
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const json = await res.json();
+                data = json.ips || [];
+                pagination = json.pagination || {};
+                render();
+                updatePagination();
+                document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                clearStatus();
+            } catch (err) {
+                console.error("Load error:", err);
+                showStatus("Connection failed", "danger");
+            }
+        }
+
+        function updatePagination() {
+            document.getElementById('paginationInfo').textContent =
+                `Page ${pagination.page || 1} of ${pagination.totalPages || 1} (${pagination.total || 0} total)`;
+            document.getElementById('prevPage').disabled = !pagination.hasPrev;
+            document.getElementById('nextPage').disabled = !pagination.hasNext;
+            document.getElementById('totalCount').textContent = pagination.total || 0;
+            document.getElementById('showingCount').textContent = data.length;
+        }
+
+        function showStatus(msg, type = "danger") {
+            const el = document.getElementById('saveStatus');
+            el.textContent = msg;
+            el.style.background = type === "danger" ? "rgba(239,68,68,0.1)" : type === "success" ? "rgba(16,185,129,0.1)" : "rgba(245,158,11,0.1)";
+            el.style.color = type === "danger" ? "var(--danger)" : type === "success" ? "var(--success)" : "var(--warning)";
+            setTimeout(clearStatus, 3000);
+        }
+        function clearStatus() { document.getElementById('saveStatus').textContent = ''; }
+
+        function render() {
+            const tbody = document.querySelector('#ipsTable tbody');
+            tbody.innerHTML = '';
+            let enabled = 0, disabled = 0, rowNum = (currentPage - 1) * pageSize;
+            const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'super_admin');
+            const isSuperAdmin = currentUser && currentUser.role === 'super_admin';
+
+            data.forEach(ip => {
+                if (!ip.disabled) enabled++; else disabled++;
+                rowNum++;
+
+                const actionsHtml = isAdmin && !ip.dynamic
+                    ? `<td style="display: ${isAdmin ? 'table-cell' : 'none'};">
+                        <button class="btn-icon edit-btn" data-id="${ip.id}" title="Edit">✏️</button>
+                        ${isSuperAdmin ? `<button class="btn-icon delete-btn" data-id="${ip.id}" data-address="${ip.address}" title="Delete">🗑️</button>` : ''}
+                       </td>`
+                    : `<td style="display: ${isAdmin ? 'table-cell' : 'none'};">
+                        <span style="color: var(--text-light); font-size: 11px;">Dynamic</span>
+                       </td>`;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${rowNum}</td>
+                    <td><strong>${ip.address}</strong>${ip.dynamic ? ' <span style="color: var(--warning); font-size: 9px;">(D)</span>' : ''}</td>
+                    <td>${ip.network}</td>
+                    <td>${ip.interface}</td>
+                    <td><span class="badge ${!ip.disabled ? 'active' : 'inactive'}">${!ip.disabled ? 'Enabled' : 'Disabled'}</span></td>
+                    <td style="color: var(--text-light); font-style: italic;">${ip.comment || ''}</td>
+                    ${actionsHtml}
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('enabledCount').textContent = enabled;
+            document.getElementById('disabledCount').textContent = disabled;
+        }
+
+        // --- Event Delegation for Table Actions ---
+        document.querySelector('#ipsTable tbody').addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.edit-btn');
+            const deleteBtn = e.target.closest('.delete-btn');
+
+            if (editBtn) {
+                openEditIpModal(editBtn.dataset.id);
+            } else if (deleteBtn) {
+                openDeleteIpModal(deleteBtn.dataset.id, deleteBtn.dataset.address);
+            }
+        });
+
+        // --- Modal Helpers ---
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        document.querySelectorAll('.modal-close, .btn-modal.secondary').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const modalId = btn.dataset.target || btn.dataset.modal; // Handle both data attributes just in case
+                if (modalId) closeModal(modalId);
+                // Fallback: find closest modal
+                else {
+                    const modal = btn.closest('.modal');
+                    if (modal) modal.classList.remove('active');
+                }
+            });
+        });
+
+        // Close on background click
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.classList.remove('active');
+            });
+        });
+
+        // --- Add IP ---
+        document.getElementById('addIpBtn').addEventListener('click', async () => {
+            try {
+                const res = await fetch(`${API}/ip-addresses/interfaces`);
+                if (!res.ok) throw new Error('Failed to load interfaces');
+                const { interfaces } = await res.json();
+
+                const select = document.getElementById('ipInterface');
+                select.innerHTML = '<option value="">Select interface...</option>';
+                interfaces.forEach(iface => {
+                    select.innerHTML += `<option value="${iface.name}">${iface.name} (${iface.type})</option>`;
+                });
+
+                document.getElementById('addIpForm').reset();
+                document.getElementById('addIpModal').classList.add('active');
+            } catch (err) {
+                showStatus('Failed to load interfaces', 'danger');
+            }
+        });
+
+        document.getElementById('submitAddIpBtn').addEventListener('click', async () => {
+            const address = document.getElementById('ipAddress').value.trim();
+            const iface = document.getElementById('ipInterface').value;
+            const comment = document.getElementById('ipComment').value.trim();
+            const disabled = document.getElementById('ipDisabled').checked;
+
+            if (!address || !iface) {
+                showStatus('Please fill in required fields', 'warning');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API}/ip-addresses`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ address, interface: iface, comment, disabled })
+                });
+
+                const result = await res.json();
+                if (!res.ok) throw new Error(result.error || 'Failed to add IP');
+
+                showStatus('IP address added successfully', 'success');
+                closeModal('addIpModal');
+                loadData();
+            } catch (err) {
+                showStatus(err.message, 'danger');
+            }
+        });
+
+        // --- Edit IP ---
+        async function openEditIpModal(id) {
+            try {
+                const ip = data.find(i => i.id === id);
+                if (!ip) throw new Error('IP not found');
+
+                document.getElementById('editIpId').value = id;
+                document.getElementById('editIpAddress').value = ip.address;
+                document.getElementById('editIpComment').value = ip.comment || '';
+                document.getElementById('editIpDisabled').checked = ip.disabled;
+
+                document.getElementById('editIpModal').classList.add('active');
+            } catch (err) {
+                showStatus(err.message, 'danger');
+            }
+        }
+
+        document.getElementById('submitEditIpBtn').addEventListener('click', async () => {
+            const id = document.getElementById('editIpId').value;
+            const comment = document.getElementById('editIpComment').value.trim();
+            const disabled = document.getElementById('editIpDisabled').checked;
+
+            try {
+                const res = await fetch(`${API}/ip-addresses/${id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ comment, disabled })
+                });
+
+                const result = await res.json();
+                if (!res.ok) throw new Error(result.error || 'Failed to update IP');
+
+                showStatus('IP address updated successfully', 'success');
+                closeModal('editIpModal');
+                loadData();
+            } catch (err) {
+                showStatus(err.message, 'danger');
+            }
+        });
+
+        // --- Delete IP ---
+        function openDeleteIpModal(id, address) {
+            document.getElementById('deleteIpId').value = id;
+            document.getElementById('deleteIpAddress').textContent = address;
+            document.getElementById('deleteIpModal').classList.add('active');
+        }
+
+        document.getElementById('confirmDeleteIpBtn').addEventListener('click', async () => {
+            const id = document.getElementById('deleteIpId').value;
+
+            try {
+                const res = await fetch(`${API}/ip-addresses/${id}`, { method: 'DELETE' });
+                const result = await res.json();
+                if (!res.ok) throw new Error(result.error || 'Failed to delete IP');
+
+                showStatus('IP address deleted successfully', 'success');
+                closeModal('deleteIpModal');
+                loadData();
+            } catch (err) {
+                showStatus(err.message, 'danger');
+            }
+        });
+
+        // --- Initial Load ---
+        loadData();
+        setInterval(loadData, 30000);
+    </script>
+</body>
+
+</html>
