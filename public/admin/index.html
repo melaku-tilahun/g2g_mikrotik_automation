@@ -322,7 +322,7 @@
                             <th>User</th>
                             <th>Action</th>
                             <th>Details</th>
-                            <th>IP</th>
+                            <!-- <th>IP</th> -->
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -671,7 +671,7 @@
                         <td><strong>${l.username || 'Unknown'}</strong></td>
                         <td><span class="badge active" style="background: rgba(79, 70, 229, 0.1); color: var(--primary); border: none;">${l.action}</span></td>
                         <td style="font-size: 13px;">${l.details}</td>
-                        <td style="font-family: monospace; font-size: 12px;">${l.ip_address}</td>
+                        //  <td style="font-family: monospace; font-size: 12px;">${l.ip_address}</td>
                     </tr>
                 `).join('');
             } catch (err) {

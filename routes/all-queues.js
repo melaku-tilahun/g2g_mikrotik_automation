@@ -110,8 +110,8 @@ router.post('/toggle', async (req, res) => {
     const { name, enabled } = req.body;
 
     // Only admins and developers can enable/disable queues
-    if (req.user.role !== 'admin' && req.user.role !== 'developer') {
-        return res.status(403).json({ error: 'Access denied: Admin or Developer role required' });
+    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+        return res.status(403).json({ error: 'Access denied: Admin or Super Admin role required' });
     }
 
     if (!name || typeof enabled !== 'boolean') {
@@ -180,6 +180,52 @@ router.post('/toggle', async (req, res) => {
         });
         // Return the specific error message from MikroTik if available
         res.status(500).json({ error: `Failed to toggle queue: ${err.message}` });
+    }
+});
+
+/**
+ * POST /api/all-queues/comment
+ * Update comment for a queue
+ */
+router.post('/comment', async (req, res) => {
+    const { name, comment } = req.body;
+
+    if (!name) {
+        return res.status(400).json({ error: 'Queue name is required' });
+    }
+
+    try {
+        // Find queue by name to get ID
+        const queues = await write('/queue/simple/print', [`?name=${name}`]);
+        
+        if (!queues || queues.length === 0) {
+            return res.status(404).json({ error: `Queue "${name}" not found` });
+        }
+        
+        const queueId = queues[0]['.id'];
+        
+        // Update comment using array format (matching toggle command pattern)
+        await write('/queue/simple/set', [
+            `=.id=${queueId}`,
+            `=comment=${comment || ''}`
+        ]);
+
+        // Log to audit_logs
+        db.prepare(`
+            INSERT INTO audit_logs (user_id, username, action, details, ip_address)
+            VALUES (?, ?, ?, ?, ?)
+        `).run(
+            req.user.id,
+            req.user.username,
+            'queue_comment_update',
+            JSON.stringify({ queue: name, comment }),
+            req.ip
+        );
+
+        res.json({ success: true });
+    } catch (err) {
+        logger.error('Failed to update comment', { name, error: err.message });
+        res.status(500).json({ error: err.message });
     }
 });
 

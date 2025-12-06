@@ -45,17 +45,27 @@ const authMiddleware = (req, res, next) => {
     }
 };
 
+const roleHierarchy = {
+    'viewer': 0,
+    'admin': 1,
+    'super_admin': 2
+};
+
 /**
  * Middleware to restrict access to specific roles
+ * Uses a hierarchy where super_admin > admin > viewer
  * @param {string} role - Required role (e.g., 'admin')
  */
-const requireRole = (role) => {
+const requireRole = (requiredRole) => {
     return (req, res, next) => {
         if (!req.user) {
             return res.status(401).json({ error: 'Authentication required' });
         }
         
-        if (req.user.role !== role && req.user.role !== 'admin') { // Admin has access to everything
+        const userRoleLevel = roleHierarchy[req.user.role] || 0;
+        const requiredRoleLevel = roleHierarchy[requiredRole] || 0;
+
+        if (userRoleLevel < requiredRoleLevel) {
             return res.status(403).json({ error: 'Access denied: Insufficient permissions' });
         }
         

@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS profiles (
     first_name TEXT,
     last_name TEXT,
     full_name TEXT,
-    role TEXT DEFAULT 'viewer' CHECK(role IN ('admin', 'user', 'viewer')),
+    role TEXT DEFAULT 'viewer' CHECK(role IN ('super_admin', 'admin', 'viewer')),
     created_at INTEGER DEFAULT (unixepoch()),
     last_login INTEGER,
     is_active BOOLEAN DEFAULT 1
@@ -70,6 +70,13 @@ CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,
     updated_at INTEGER DEFAULT (unixepoch())
+);
+
+CREATE TABLE IF NOT EXISTS health_metrics (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    metric_name TEXT,
+    metric_value REAL,
+    timestamp INTEGER DEFAULT (unixepoch())
 );
 `);
 
@@ -96,6 +103,24 @@ try {
     if (!hasUsername) {
         db.exec("ALTER TABLE audit_logs ADD COLUMN username TEXT");
         console.log('Migrated: Added username column to audit_logs');
+    }
+
+    // Health metrics migration (fix schema mismatch)
+    const healthColumns = db.pragma('table_info(health_metrics)');
+    const hasMetricName = healthColumns.some(c => c.name === 'metric_name');
+    
+    if (healthColumns.length > 0 && !hasMetricName) {
+        // Table exists but has wrong schema (from previous incorrect definition)
+        db.exec("DROP TABLE health_metrics");
+        db.exec(`
+            CREATE TABLE health_metrics (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                metric_name TEXT,
+                metric_value REAL,
+                timestamp INTEGER DEFAULT (unixepoch())
+            )
+        `);
+        console.log('Migrated: Recreated health_metrics table with correct schema');
     }
 } catch (error) {
     console.error('Migration error:', error.message);

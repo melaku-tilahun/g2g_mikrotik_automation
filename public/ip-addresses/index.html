@@ -5,6 +5,7 @@
     <meta charset="UTF-8" />
     <title>IP Address Monitor</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌐</text></svg>">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -475,6 +476,19 @@
             background: #dc2626;
         }
 
+        /* Highlight animation */
+        @keyframes highlight-pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(79, 70, 229, 0);
+            }
+
+            50% {
+                box-shadow: 0 0 0 8px rgba(79, 70, 229, 0.4);
+            }
+        }
+
         @media (max-width: 768px) {
             h1 {
                 font-size: 22px;
@@ -498,10 +512,11 @@
         <header>
             <h1>IP Address Monitor</h1>
             <div class="controls">
-                <button id="addIpBtn" class="btn btn-success" style="display: none;">➕ Add IP</button>
-                <a href="/dashboard" class="btn btn-back">← Dashboard</a>
+                <button id="addIpBtn" class="btn btn-success" style="display: none;"><i class="fas fa-plus"></i> Add
+                    IP</button>
+                <a href="/dashboard" class="btn btn-back"><i class="fas fa-arrow-left"></i> Dashboard</a>
                 <input type="text" id="search" placeholder="Search..." />
-                <button id="themeToggle">🌙</button>
+                <button id="themeToggle"><i class="fas fa-moon"></i></button>
             </div>
         </header>
 
@@ -528,13 +543,13 @@
         <div class="pagination">
             <div class="pagination-info"><span id="paginationInfo">Page 1 of 1</span></div>
             <div class="pagination-controls">
-                <button id="prevPage">← Prev</button>
+                <button id="prevPage"><i class="fas fa-chevron-left"></i> Prev</button>
                 <select id="pageSize">
                     <option value="25">25/page</option>
                     <option value="50" selected>50/page</option>
                     <option value="100">100/page</option>
                 </select>
-                <button id="nextPage">Next →</button>
+                <button id="nextPage">Next <i class="fas fa-chevron-right"></i></button>
             </div>
         </div>
 
@@ -561,7 +576,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Add New IP Address</h2>
-                <button class="modal-close" data-target="addIpModal">×</button>
+                <button class="modal-close" data-target="addIpModal"><i class="fas fa-times"></i></button>
             </div>
             <div class="modal-body">
                 <form id="addIpForm">
@@ -600,7 +615,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Edit IP Address</h2>
-                <button class="modal-close" data-target="editIpModal">×</button>
+                <button class="modal-close" data-target="editIpModal"><i class="fas fa-times"></i></button>
             </div>
             <div class="modal-body">
                 <form id="editIpForm">
@@ -634,7 +649,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Delete IP Address</h2>
-                <button class="modal-close" data-target="deleteIpModal">×</button>
+                <button class="modal-close" data-target="deleteIpModal"><i class="fas fa-times"></i></button>
             </div>
             <div class="modal-body">
                 <p>Are you sure you want to delete this IP address?</p>
@@ -681,7 +696,7 @@
         const themeToggle = document.getElementById('themeToggle');
         const setTheme = dark => {
             document.documentElement.dataset.theme = dark ? 'dark' : '';
-            themeToggle.textContent = dark ? '☀️' : '🌙';
+            themeToggle.innerHTML = dark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
             localStorage.setItem('theme', dark ? 'dark' : 'light');
         };
         themeToggle.addEventListener('click', () => setTheme(document.documentElement.dataset.theme !== 'dark'));
@@ -691,6 +706,7 @@
         document.getElementById('prevPage').addEventListener('click', () => {
             if (pagination.hasPrev) { currentPage--; loadData(); }
         });
+
         document.getElementById('nextPage').addEventListener('click', () => {
             if (pagination.hasNext) { currentPage++; loadData(); }
         });
@@ -719,6 +735,12 @@
                 updatePagination();
                 document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 clearStatus();
+
+                // Check if highlight parameter is set
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('highlight') === 'true') {
+                    setTimeout(highlightMatchingIp, 300);
+                }
             } catch (err) {
                 console.error("Load error:", err);
                 showStatus("Connection failed", "danger");
@@ -756,8 +778,8 @@
 
                 const actionsHtml = isAdmin && !ip.dynamic
                     ? `<td style="display: ${isAdmin ? 'table-cell' : 'none'};">
-                        <button class="btn-icon edit-btn" data-id="${ip.id}" title="Edit">✏️</button>
-                        ${isSuperAdmin ? `<button class="btn-icon delete-btn" data-id="${ip.id}" data-address="${ip.address}" title="Delete">🗑️</button>` : ''}
+                        <button class="btn-icon edit-btn" data-id="${ip.id}" title="Edit"><i class="fas fa-pen"></i></button>
+                        ${isSuperAdmin ? `<button class="btn-icon delete-btn" data-id="${ip.id}" data-address="${ip.address}" title="Delete"><i class="fas fa-trash"></i></button>` : ''}
                        </td>`
                     : `<td style="display: ${isAdmin ? 'table-cell' : 'none'};">
                         <span style="color: var(--text-light); font-size: 11px;">Dynamic</span>
@@ -931,6 +953,50 @@
         // --- Initial Load ---
         loadData();
         setInterval(loadData, 30000);
+
+        // Apply URL parameters on page load
+        function applyUrlParameters() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const searchParam = urlParams.get('search');
+
+            if (searchParam) {
+                document.getElementById('search').value = searchParam;
+                // Search will trigger via loadData() called above
+            }
+        }
+
+        // Highlight matching IP row
+        function highlightMatchingIp() {
+            const searchValue = document.getElementById('search').value.toLowerCase();
+            if (!searchValue) return;
+
+            const tbody = document.querySelector('#ipsTable tbody');
+            const rows = tbody.querySelectorAll('tr');
+
+            rows.forEach(row => {
+                const addressCell = row.querySelector('td:nth-child(2) strong');
+                if (addressCell && addressCell.textContent.toLowerCase().includes(searchValue)) {
+                    // Apply highlight animation
+                    row.style.animation = 'highlight-pulse 2s ease-in-out';
+                    row.style.backgroundColor = 'rgba(79, 70, 229, 0.15)';
+
+                    // Scroll into view
+                    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                    // Remove highlight after animation
+                    setTimeout(() => {
+                        row.style.animation = '';
+                        row.style.backgroundColor = '';
+                    }, 2500);
+
+                    // Only highlight first match
+                    return;
+                }
+            });
+        }
+
+        // Call on initialization
+        applyUrlParameters();
     </script>
 </body>
 

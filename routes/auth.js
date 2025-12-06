@@ -21,7 +21,7 @@ router.post('/signup', (req, res) => {
 
 /**
  * POST /api/auth/login
- * Authenticate user and issue JWT token
+ * Authenticate user and issue JWT token (or initiate 2FA if required)
  */
 router.post('/login', async (req, res) => {
     try {
@@ -33,7 +33,7 @@ router.post('/login', async (req, res) => {
 
         // Find user by username or email
         const user = db.prepare(`
-            SELECT id, username, email, password_hash, full_name, role, is_active
+            SELECT id, username, email, password_hash, full_name, role, is_active, twofa_enabled
             FROM profiles
             WHERE username = ? OR email = ?
         `).get(username, username);
@@ -52,6 +52,38 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
+        // Check if 2FA is required and enabled
+        const twoFactorService = require('../services/TwoFactorService');
+        const requires2FA = twoFactorService.shouldRequire2FA(user.role) && user.twofa_enabled;
+
+        if (requires2FA) {
+            // Check if account is locked
+            const lockStatus = twoFactorService.isLocked(user.id);
+            if (lockStatus.locked) {
+                const minutes = Math.ceil(lockStatus.remainingTime / 60);
+                return res.status(403).json({
+                    error: `Account temporarily locked due to failed verification attempts. Try again in ${minutes} minute(s).`
+                });
+            }
+
+            // Send OTP instead of issuing token
+            const otpResult = await twoFactorService.sendOTP(user.id, user.email, user.full_name || user.username);
+
+            if (!otpResult.success) {
+                return res.status(500).json({ error: otpResult.error });
+            }
+
+            logger.info(`2FA initiated for user: ${user.username} (${user.role})`);
+
+            return res.json({
+                requiresTwoFactor: true,
+                userId: user.id,
+                email: user.email.replace(/(.{2})(.*)(@.*)/, '$1***$3'), // Masked email for display
+                message: 'Verification code sent to your email'
+            });
+        }
+
+        // No 2FA required - issue token directly
         // Update last login
         db.prepare('UPDATE profiles SET last_login = unixepoch() WHERE id = ?').run(user.id);
 
@@ -94,6 +126,7 @@ router.post('/login', async (req, res) => {
     }
 });
 
+
 /**
  * POST /api/auth/logout
  * Clear authentication token
@@ -102,6 +135,128 @@ router.post('/logout', (req, res) => {
     res.clearCookie('token');
     res.json({ message: 'Logged out successfully' });
 });
+
+/**
+ * POST /api/auth/verify-2fa
+ * Verify OTP code and issue JWT token
+ */
+router.post('/verify-2fa', async (req, res) => {
+    try {
+        const { userId, code } = req.body;
+
+        if (!userId || !code) {
+            return res.status(400).json({ error: 'User ID and verification code are required' });
+        }
+
+        const twoFactorService = require('../services/TwoFactorService');
+
+        // Verify OTP
+        const verificationResult = await twoFactorService.verifyOTP(userId, code);
+
+        if (!verificationResult.valid) {
+            return res.status(401).json({
+                error: verificationResult.error,
+                attemptsRemaining: verificationResult.attemptsRemaining
+            });
+        }
+
+        // OTP verified - get user and issue token
+        const user = db.prepare(`
+            SELECT id, username, email, full_name, role
+            FROM profiles
+            WHERE id = ?
+        `).get(userId);
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Update last login
+        db.prepare('UPDATE profiles SET last_login = unixepoch() WHERE id = ?').run(user.id);
+
+        // Generate JWT token
+        const token = jwt.sign(
+            {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                role: user.role
+            },
+            config.jwt.secret,
+            { expiresIn: config.jwt.expiresIn }
+        );
+
+        // Set HTTP-only cookie
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: config.server.env === 'production',
+            sameSite: 'strict',
+            maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        });
+
+        logger.info(`User logged in via 2FA: ${user.username} (${user.role})`);
+
+        res.json({
+            message: 'Login successful',
+            user: {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                full_name: user.full_name,
+                role: user.role
+            },
+            token
+        });
+    } catch (error) {
+        logger.error('2FA verification error', { error: error.message });
+        res.status(500).json({ error: 'Verification failed' });
+    }
+});
+
+/**
+ * POST /api/auth/resend-otp
+ * Resend OTP code to user's email
+ */
+router.post('/resend-otp', async (req, res) => {
+    try {
+        const { userId } = req.body;
+
+        if (!userId) {
+            return res.status(400).json({ error: 'User ID is required' });
+        }
+
+        // Get user
+        const user = db.prepare(`
+            SELECT id, email, full_name, username
+            FROM profiles
+            WHERE id = ?
+        `).get(userId);
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const twoFactorService = require('../services/TwoFactorService');
+
+        // Send new OTP
+        const otpResult = await twoFactorService.sendOTP(user.id, user.email, user.full_name || user.username);
+
+        if (!otpResult.success) {
+            return res.status(500).json({ error: otpResult.error });
+        }
+
+        logger.info(`OTP resent for user: ${user.username}`);
+
+        res.json({
+            message: 'Verification code sent to your email',
+            email: user.email.replace(/(.{2})(.*)(@.*)/, '$1***$3') // Masked email
+        });
+    } catch (error) {
+        logger.error('Resend OTP error', { error: error.message });
+        res.status(500).json({ error: 'Failed to resend verification code' });
+    }
+});
+
 
 /**
  * GET /api/auth/me

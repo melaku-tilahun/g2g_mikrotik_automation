@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Login • G2G IT Solutions</title>
@@ -7,9 +8,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #2563eb; /* Royal Blue */
+            --primary: #2563eb;
+            /* Royal Blue */
             --primary-dark: #1e40af;
-            --secondary: #0f172a; /* Slate 900 */
+            --secondary: #0f172a;
+            /* Slate 900 */
             --text-main: #1e293b;
             --text-light: #64748b;
             --bg-light: #f8fafc;
@@ -84,7 +87,8 @@
         }
 
         .brand-logo span {
-            color: #60a5fa; /* Light blue accent */
+            color: #60a5fa;
+            /* Light blue accent */
         }
 
         .slogan-main {
@@ -137,7 +141,7 @@
             flex-direction: column;
             justify-content: center;
             padding: 60px;
-            box-shadow: -10px 0 40px rgba(0,0,0,0.05);
+            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.05);
             position: relative;
         }
 
@@ -226,6 +230,76 @@
             text-align: center;
         }
 
+        .success-msg {
+            background: #f0fdf4;
+            color: #16a34a;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 24px;
+            display: none;
+            border: 1px solid #bbf7d0;
+            text-align: center;
+        }
+
+        /* 2FA Section */
+        .twofa-section {
+            display: none;
+        }
+
+        .otp-input {
+            width: 100%;
+            font-size: 24px !important;
+            letter-spacing: 8px;
+            text-align: center;
+            font-weight: 600;
+            padding: 20px !important;
+        }
+
+        .resend-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+            font-size: 14px;
+        }
+
+        .resend-btn {
+            background: transparent;
+            color: var(--primary);
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: underline;
+        }
+
+        .resend-btn:hover {
+            background: transparent;
+            color: var(--primary-dark);
+            transform: none;
+        }
+
+        .resend-btn:disabled {
+            color: var(--text-light);
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 16px;
+            color: var(--primary);
+            font-size: 14px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
         .footer {
             margin-top: auto;
             text-align: center;
@@ -269,6 +343,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="brand-section">
         <div class="brand-content">
@@ -276,8 +351,9 @@
                 G2G <span>IT Solutions</span>
             </div>
             <h1 class="slogan-main">We connect you to the world, and the world to you!</h1>
-            <p class="slogan-sub">We help you to stay connected, productive, and secure in the digital age. Access your GPON Monitor dashboard to manage your network infrastructure efficiently.</p>
-            
+            <p class="slogan-sub">We help you to stay connected, productive, and secure in the digital age. Access your
+                GPON Monitor dashboard to manage your network infrastructure efficiently.</p>
+
             <div class="features">
                 <div class="feature-item">
                     <div class="feature-icon">✓</div>
@@ -305,22 +381,49 @@
             <p>Please sign in to access your dashboard</p>
         </div>
 
+        <!-- Login Form -->
         <form id="loginForm">
             <div class="form-group">
                 <label for="username">Username</label>
                 <div class="input-wrapper">
-                    <input type="text" id="username" name="username" required autocomplete="username" placeholder="Enter your username">
+                    <input type="text" id="username" name="username" required autocomplete="username"
+                        placeholder="Enter your username">
                 </div>
             </div>
             <div class="form-group">
                 <label for="password">Password</label>
                 <div class="input-wrapper">
-                    <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="••••••••">
+                    <input type="password" id="password" name="password" required autocomplete="current-password"
+                        placeholder="••••••••">
                 </div>
             </div>
             <button type="submit">Sign In</button>
             <div id="errorMsg" class="error-msg"></div>
         </form>
+
+        <!-- 2FA Verification Form -->
+        <div class="twofa-section" id="twofaSection">
+            <div id="successMsg" class="success-msg"></div>
+
+            <div class="form-group">
+                <label for="otpCode">Verification Code</label>
+                <div class="input-wrapper">
+                    <input type="text" id="otpCode" class="otp-input" maxlength="6" pattern="[0-9]{6}"
+                        placeholder="000000" autocomplete="off">
+                </div>
+            </div>
+
+            <button id="verifyBtn">Verify Code</button>
+
+            <div class="resend-section">
+                <span id="resendTimer" style="color: var(--text-light);"></span>
+                <button type="button" class="resend-btn" id="resendBtn" disabled>Resend Code</button>
+            </div>
+
+            <a class="back-link" id="backToLogin">← Back to Login</a>
+
+            <div id="twofa-errorMsg" class="error-msg"></div>
+        </div>
 
         <div class="footer">
             &copy; 2025 G2G IT Solutions. All rights reserved.
@@ -328,12 +431,17 @@
     </div>
 
     <script>
+        let currentUserId = null;
+        let resendCountdown = 60;
+        let resendTimer = null;
+
+        // Login form handler
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const errorMsg = document.getElementById('errorMsg');
             const submitBtn = e.target.querySelector('button');
             const originalBtnText = submitBtn.textContent;
-            
+
             errorMsg.style.display = 'none';
             submitBtn.disabled = true;
             submitBtn.textContent = 'Signing in...';
@@ -356,23 +464,178 @@
                     throw new Error(data.error || 'Login failed');
                 }
 
-                // Add a small delay for better UX
-                setTimeout(() => {
-                    window.location.href = '/dashboard';
-                }, 500);
-                
+                // Check if 2FA is required
+                if (data.requiresTwoFactor) {
+                    currentUserId = data.userId;
+                    showTwoFactorForm(data.email, data.message);
+                } else {
+                    // Direct login success
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 500);
+                }
+
             } catch (err) {
                 errorMsg.textContent = err.message;
                 errorMsg.style.display = 'block';
                 submitBtn.disabled = false;
                 submitBtn.textContent = originalBtnText;
-                
-                // Shake animation for error
-                const form = document.querySelector('.login-section');
-                form.style.animation = 'shake 0.5s';
-                setTimeout(() => form.style.animation = '', 500);
+
+                shakeAnimation();
             }
         });
+
+        // Show 2FA verification form
+        function showTwoFactorForm(maskedEmail, message) {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('twofaSection').style.display = 'block';
+
+            const successMsg = document.getElementById('successMsg');
+            successMsg.textContent = message + ' (' + maskedEmail + ')';
+            successMsg.style.display = 'block';
+
+            document.getElementById('otpCode').focus();
+            startResendTimer();
+
+            // Update header
+            document.querySelector('.login-header h2').textContent = 'Verify Your Identity';
+            document.querySelector('.login-header p').textContent = 'Enter the 6-digit code sent to your email';
+        }
+
+        // Verify OTP
+        document.getElementById('verifyBtn').addEventListener('click', async () => {
+            const otpCode = document.getElementById('otpCode').value;
+            const errorMsg = document.getElementById('twofa-errorMsg');
+            const verifyBtn = document.getElementById('verifyBtn');
+
+            if (otpCode.length !== 6) {
+                errorMsg.textContent = 'Please enter a 6-digit code';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            errorMsg.style.display = 'none';
+            verifyBtn.disabled = true;
+            verifyBtn.textContent = 'Verifying...';
+
+            try {
+                const res = await fetch('/api/auth/verify-2fa', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: currentUserId, code: otpCode })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.error || 'Verification failed');
+                }
+
+                // Success!
+                verifyBtn.textContent = 'Verified! Redirecting...';
+                setTimeout(() => {
+                    window.location.href = '/dashboard';
+                }, 500);
+
+            } catch (err) {
+                errorMsg.textContent = err.message;
+                errorMsg.style.display = 'block';
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = 'Verify Code';
+                document.getElementById('otpCode').value = '';
+                document.getElementById('otpCode').focus();
+
+                shakeAnimation();
+            }
+        });
+
+        // Resend OTP
+        document.getElementById('resendBtn').addEventListener('click', async () => {
+            const errorMsg = document.getElementById('twofa-errorMsg');
+            const successMsg = document.getElementById('successMsg');
+            const resendBtn = document.getElementById('resendBtn');
+
+            errorMsg.style.display = 'none';
+            resendBtn.disabled = true;
+            resendBtn.textContent = 'Sending...';
+
+            try {
+                const res = await fetch('/api/auth/resend-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: currentUserId })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.error || 'Failed to resend code');
+                }
+
+                successMsg.textContent = data.message + ' (' + data.email + ')';
+                successMsg.style.display = 'block';
+                resendBtn.textContent = 'Resend Code';
+                startResendTimer();
+
+            } catch (err) {
+                errorMsg.textContent = err.message;
+                errorMsg.style.display = 'block';
+                resendBtn.disabled = false;
+                resendBtn.textContent = 'Resend Code';
+            }
+        });
+
+        // Back to login
+        document.getElementById('backToLogin').addEventListener('click', () => {
+            document.getElementById('twofaSection').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'block';
+            document.querySelector('.login-header h2').textContent = 'Welcome Back';
+            document.querySelector('.login-header p').textContent = 'Please sign in to access your dashboard';
+            document.getElementById('otpCode').value = '';
+            document.getElementById('errorMsg').style.display = 'none';
+            document.getElementById('twofa-errorMsg').style.display = 'none';
+            if (resendTimer) clearInterval(resendTimer);
+        });
+
+        // Resend countdown timer
+        function startResendTimer() {
+            resendCountdown = 60;
+            const resendBtn = document.getElementById('resendBtn');
+            const timerDisplay = document.getElementById('resendTimer');
+            resendBtn.disabled = true;
+
+            if (resendTimer) clearInterval(resendTimer);
+
+            resendTimer = setInterval(() => {
+                resendCountdown--;
+                timerDisplay.textContent = `Resend available in ${resendCountdown}s`;
+
+                if (resendCountdown <= 0) {
+                    clearInterval(resendTimer);
+                    timerDisplay.textContent = '';
+                    resendBtn.disabled = false;
+                }
+            }, 1000);
+        }
+
+        // Allow only numbers in OTP input
+        document.getElementById('otpCode').addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/[^0-9]/g, '');
+        });
+
+        // Auto-submit on 6 digits
+        document.getElementById('otpCode').addEventListener('keyup', (e) => {
+            if (e.target.value.length === 6 && e.key === 'Enter') {
+                document.getElementById('verifyBtn').click();
+            }
+        });
+
+        // Shake animation
+        function shakeAnimation() {
+            const form = document.querySelector('.login-section');
+            form.style.animation = 'shake 0.5s';
+            setTimeout(() => form.style.animation = '', 500);
+        }
 
         // Add shake animation keyframes
         const style = document.createElement('style');
@@ -386,4 +649,5 @@
         document.head.appendChild(style);
     </script>
 </body>
+
 </html>

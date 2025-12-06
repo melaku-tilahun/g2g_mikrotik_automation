@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <title>All Queues Monitor</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
   <style>
     :root {
       --bg: #f5f7fa;
@@ -96,7 +99,9 @@
       box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
     }
 
-    input, button, select {
+    input,
+    button,
+    select {
       padding: 8px 12px;
       border-radius: 8px;
       border: 1px solid var(--border);
@@ -107,7 +112,8 @@
       transition: all 0.2s;
     }
 
-    input:focus, select:focus {
+    input:focus,
+    select:focus {
       outline: none;
       border-color: var(--primary);
       box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
@@ -215,7 +221,8 @@
       border: 1px solid var(--border);
     }
 
-    th, td {
+    th,
+    td {
       padding: 10px 8px;
       text-align: left;
     }
@@ -287,11 +294,11 @@
       border-radius: 50%;
     }
 
-    input:checked + .slider {
+    input:checked+.slider {
       background-color: var(--success);
     }
 
-    input:checked + .slider:before {
+    input:checked+.slider:before {
       transform: translateX(20px);
     }
 
@@ -364,10 +371,129 @@
       font-size: 12px;
     }
 
+    /* Comment column styles */
+    .comment-cell {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 4px;
+      transition: background 0.2s;
+      max-width: 200px;
+      width: 200px;
+    }
+
+    .comment-cell:hover {
+      background: rgba(79, 70, 229, 0.05);
+    }
+
+    .comment-preview {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 12px;
+    }
+
+    .comment-preview.empty {
+      color: var(--text-light);
+      font-style: italic;
+    }
+
+    .comment-edit-icon {
+      font-size: 16px;
+      opacity: 0.3;
+      transition: opacity 0.2s;
+    }
+
+    .comment-cell:hover .comment-edit-icon {
+      opacity: 1;
+    }
+
+    /* Status select dropdown */
+    .status-select {
+      padding: 4px 8px;
+      font-size: 11px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .status-select:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    /* Target cell clickable */
+    .target-cell {
+      cursor: pointer;
+      transition: background 0.2s;
+      max-width: 150px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .target-cell:hover {
+      background: rgba(79, 70, 229, 0.05);
+    }
+
+    /* Comment textarea and toolbar */
+    .comment-toolbar {
+      margin: 10px 0;
+    }
+
+    .btn-toolbar {
+      padding: 6px 12px;
+      font-size: 12px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-toolbar:hover {
+      background: var(--bg);
+    }
+
+    #commentText {
+      width: 100%;
+      min-height: 120px;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 13px;
+      color: var(--text);
+      background: var(--card);
+      resize: vertical;
+    }
+
+    #commentText:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
     @media (max-width: 768px) {
-      h1 { font-size: 22px; }
-      .stats { grid-template-columns: repeat(2, 1fr); }
-      th, td { padding: 8px 4px; font-size: 11px; }
+      h1 {
+        font-size: 22px;
+      }
+
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      th,
+      td {
+        padding: 8px 4px;
+        font-size: 11px;
+      }
     }
   </style>
 </head>
@@ -377,9 +503,9 @@
     <header>
       <h1>All Queues Monitor</h1>
       <div class="controls">
-        <a href="/dashboard" class="btn-back">← GPON</a>
+        <a href="/dashboard" class="btn-back"><i class="fas fa-arrow-left"></i> GPON</a>
         <input type="text" id="search" placeholder="Search..." />
-        <button id="themeToggle">🌙</button>
+        <button id="themeToggle"><i class="fas fa-moon"></i></button>
       </div>
     </header>
 
@@ -408,13 +534,13 @@
         <span id="paginationInfo">Page 1 of 1</span>
       </div>
       <div class="pagination-controls">
-        <button id="prevPage">← Prev</button>
+        <button id="prevPage"><i class="fas fa-chevron-left"></i> Prev</button>
         <select id="pageSize">
           <option value="25">25/page</option>
           <option value="50" selected>50/page</option>
           <option value="100">100/page</option>
         </select>
-        <button id="nextPage">Next →</button>
+        <button id="nextPage">Next <i class="fas fa-chevron-right"></i></button>
       </div>
     </div>
 
@@ -429,6 +555,7 @@
             <th>TX</th>
             <th>Total</th>
             <th>Status</th>
+            <th>Comment</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -444,6 +571,49 @@
       <div class="buttons">
         <button class="btn-cancel" id="cancelConfirmBtn">Cancel</button>
         <button class="btn-confirm" id="confirmBtn">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Redirect Choice Modal -->
+  <div id="redirectModal" class="modal">
+    <div class="modal-content">
+      <h3 style="color: var(--success);"><i class="fas fa-check-circle"></i> Queue Updated Successfully</h3>
+      <p>Queue "<span id="redirectQueueName" style="font-weight: 600; color: var(--primary);"></span>" has been <span
+          id="redirectAction" style="font-weight: 600;"></span>.</p>
+      <p style="margin-top: 12px; color: var(--text-light); font-size: 13px;">
+        Would you like to manage the IP address <strong id="redirectIpAddress" style="color: var(--primary);"></strong>?
+      </p>
+      <div class="buttons">
+        <button class="btn-cancel" id="stayOnPageBtn">Stay Here</button>
+        <button class="btn-confirm" id="goToIpBtn">Go to IP Address →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Text View Modal -->
+  <div id="textModal" class="modal">
+    <div class="modal-content">
+      <h3 id="textModalTitle">Full Content</h3>
+      <p id="textModalContent" style="max-height: 300px; overflow-y: auto; white-space: pre-wrap;"></p>
+      <div class="buttons">
+        <button class="btn-confirm" id="closeTextModalBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Comment Modal -->
+  <div id="commentModal" class="modal">
+    <div class="modal-content">
+      <h3>Edit Comment</h3>
+      <p id="commentQueueName" style="font-weight: 600; color: var(--primary);"></p>
+      <div class="comment-toolbar">
+        <button class="btn-toolbar" id="insertDateBtn"><i class="fas fa-calendar-alt"></i> Insert Date & Time</button>
+      </div>
+      <textarea id="commentText" placeholder="Enter comment here..."></textarea>
+      <div class="buttons">
+        <button class="btn-cancel" id="cancelCommentBtn">Cancel</button>
+        <button class="btn-confirm" id="saveCommentBtn">Save Comment</button>
       </div>
     </div>
   </div>
@@ -474,7 +644,7 @@
     const themeToggle = document.getElementById('themeToggle');
     const setTheme = dark => {
       document.documentElement.dataset.theme = dark ? 'dark' : '';
-      themeToggle.textContent = dark ? '☀️' : '🌙';
+      themeToggle.innerHTML = dark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
       localStorage.setItem('theme', dark ? 'dark' : 'light');
     };
     themeToggle.addEventListener('click', () => setTheme(document.documentElement.dataset.theme !== 'dark'));
@@ -517,15 +687,15 @@
       try {
         const search = document.getElementById('search').value;
         const url = `${API}/all-queues?page=${currentPage}&limit=${pageSize}&search=${encodeURIComponent(search)}`;
-        
+
         const res = await fetch(url, { cache: "no-store" });
         if (res.status === 401) { window.location.href = '/login'; return; }
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        
+
         const json = await res.json();
         data = json.queues || [];
         pagination = json.pagination || {};
-        
+
         render();
         updatePagination();
         document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -537,7 +707,7 @@
     }
 
     function updatePagination() {
-      document.getElementById('paginationInfo').textContent = 
+      document.getElementById('paginationInfo').textContent =
         `Page ${pagination.page || 1} of ${pagination.totalPages || 1} (${pagination.total || 0} total)`;
       document.getElementById('prevPage').disabled = !pagination.hasPrev;
       document.getElementById('nextPage').disabled = !pagination.hasNext;
@@ -560,19 +730,18 @@
 
       data.forEach(q => {
         if (!q.disabled) enabled++; else disabled++;
-        
+
         rowNum++;
         const isChild = q.parent && q.parent !== '';
-        // Allow both admin and developer roles to toggle queues
-        const canToggle = currentUser && (currentUser.role === 'admin' || currentUser.role === 'developer');
+        const canToggle = currentUser && (currentUser.role === 'admin' || currentUser.role === 'developer' || currentUser.role === 'super_admin');
 
         let toggleHtml;
         if (isChild && canToggle) {
           toggleHtml = `
-            <label class="toggle-switch">
-              <input type="checkbox" ${!q.disabled ? 'checked' : ''} data-queue="${q.name}">
-              <span class="slider"></span>
-            </label>
+            <select class="status-select" data-queue="${q.name}" style="color: ${!q.disabled ? 'var(--success)' : 'var(--danger)'}; background: ${!q.disabled ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'};">
+              <option value="enabled" ${!q.disabled ? 'selected' : ''}>Enabled</option>
+              <option value="disabled" ${q.disabled ? 'selected' : ''}>Disabled</option>
+            </select>
           `;
         } else if (isChild) {
           toggleHtml = `<span style="color: ${!q.disabled ? 'var(--success)' : 'var(--danger)'}; font-weight: 600; font-size: 10px;">${!q.disabled ? 'Enabled' : 'Disabled'}</span>`;
@@ -588,11 +757,17 @@
             <strong>${q.name}</strong>
             ${isChild ? ` <span style="color: var(--text-light); font-size: 9px;">(child of ${q.parent})</span>` : ''}
           </td>
-          <td>${q.target}</td>
+          <td class="target-cell" title="Click to view full target">${q.target}</td>
           <td>${(q.rx / 1e6).toFixed(2)}M</td>
           <td>${(q.tx / 1e6).toFixed(2)}M</td>
           <td style="font-weight:600;">${((q.rx + q.tx) / 1e6).toFixed(2)} M</td>
           <td style="text-align:center">${toggleHtml}</td>
+          <td>
+            <div class="comment-cell" data-name="${q.name}">
+              <span class="comment-preview ${q.comment ? '' : 'empty'}">${q.comment || 'No comment...'}</span>
+              <span class="comment-edit-icon"><i class="fas fa-pen"></i></span>
+            </div>
+          </td>
         `;
         tbody.appendChild(tr);
       });
@@ -600,13 +775,32 @@
       document.getElementById('enabledCount').textContent = enabled;
       document.getElementById('disabledCount').textContent = disabled;
 
-      // Attach event listeners to toggle switches
-      document.querySelectorAll('.toggle-switch input').forEach(toggle => {
-        toggle.addEventListener('change', (e) => {
+      // Attach event listeners to select dropdowns
+      document.querySelectorAll('.status-select').forEach(select => {
+        select.addEventListener('change', (e) => {
           e.stopPropagation();
-          const queueName = toggle.dataset.queue;
-          const enabled = toggle.checked;
-          toggleQueue(queueName, enabled);
+          const queueName = select.dataset.queue;
+          const enabled = select.value === 'enabled';
+          toggleQueue(queueName, enabled, select);
+        });
+      });
+
+      // Comment cell click listener
+      document.querySelectorAll('.comment-cell').forEach(cell => {
+        cell.addEventListener('click', () => {
+          const name = cell.dataset.name;
+          const queue = data.find(q => q.name === name);
+          openCommentModal(name, queue ? queue.comment : '');
+        });
+      });
+
+      // Target cell click listener
+      document.querySelectorAll('.target-cell').forEach(cell => {
+        cell.addEventListener('click', () => {
+          const content = cell.textContent;
+          document.getElementById('textModalTitle').textContent = 'Full Target List';
+          document.getElementById('textModalContent').textContent = content;
+          document.getElementById('textModal').classList.add('active');
         });
       });
     }
@@ -621,47 +815,204 @@
 
     document.getElementById('confirmBtn').addEventListener('click', async () => {
       if (!pendingToggle) return;
-      
+
       const { name, enabled } = pendingToggle;
       const action = enabled ? 'enable' : 'disable';
-      
+
       closeConfirmModal();
       showStatus("Processing...", "warning");
-      
+
       try {
         const res = await fetch(`${API}/all-queues/toggle`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, enabled })
         });
-        
+
         if (!res.ok) {
           const error = await res.json();
           throw new Error(error.error || 'Failed to toggle queue');
         }
-        
+
         showStatus(`Queue ${action}d successfully`, "success");
-        setTimeout(() => {
-          clearStatus();
-          loadData();
-        }, 2000);
+
+        // Extract IP from target field and show redirect choice
+        const queue = data.find(q => q.name === name);
+        const extractedIp = extractIpFromTarget(queue?.target);
+
+        if (extractedIp) {
+          // Show redirect choice modal
+          setTimeout(() => {
+            clearStatus();
+            showRedirectChoice(name, action, extractedIp);
+          }, 1000);
+        } else {
+          // No IP found, just reload
+          setTimeout(() => {
+            clearStatus();
+            loadData();
+          }, 2000);
+        }
       } catch (err) {
         showStatus(err.message, "danger");
+        // Revert selection if failed
+        if (selectElement) {
+          selectElement.value = enabled ? 'disabled' : 'enabled';
+        }
         loadData();
       }
-      
+
       pendingToggle = null;
     });
 
     function closeConfirmModal() {
       document.getElementById('confirmModal').classList.remove('active');
+      // Revert selection if cancelled
+      if (pendingToggle && pendingToggle.selectElement) {
+        pendingToggle.selectElement.value = pendingToggle.enabled ? 'disabled' : 'enabled';
+      }
       pendingToggle = null;
-      loadData();
     }
+
+    // IP Extraction utility function - decrements last octet by 1
+    function extractIpFromTarget(target) {
+      if (!target) return null;
+
+      // Regex pattern to match IP address (with or without CIDR)
+      const ipPattern = /(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})(\/\d{1,2})?/;
+      const match = target.match(ipPattern);
+
+      if (!match) return null;
+
+      // Extract octets
+      const octet1 = match[1];
+      const octet2 = match[2];
+      const octet3 = match[3];
+      let octet4 = parseInt(match[4]);
+
+      // Decrement last octet by 1
+      octet4 = octet4 - 1;
+
+      // Ensure octet4 doesn't go below 0
+      if (octet4 < 0) octet4 = 0;
+
+      // Return modified IP without CIDR notation
+      return `${octet1}.${octet2}.${octet3}.${octet4}`;
+    }
+
+    // Show redirect choice modal
+    function showRedirectChoice(queueName, action, ipAddress) {
+      document.getElementById('redirectQueueName').textContent = queueName;
+      document.getElementById('redirectAction').textContent = action + 'd';
+      document.getElementById('redirectIpAddress').textContent = ipAddress;
+      document.getElementById('redirectModal').classList.add('active');
+
+      // Store IP for later use
+      window.pendingRedirectIp = ipAddress;
+    }
+
+    // Stay on current page button
+    document.getElementById('stayOnPageBtn').addEventListener('click', () => {
+      document.getElementById('redirectModal').classList.remove('active');
+      loadData();
+    });
+
+    // Redirect to IP addresses page button
+    document.getElementById('goToIpBtn').addEventListener('click', () => {
+      const ip = window.pendingRedirectIp;
+      if (ip) {
+        document.getElementById('redirectModal').classList.remove('active');
+        showStatus("Redirecting to IP Address page...", "warning");
+
+        setTimeout(() => {
+          window.location.href = `/ip-addresses?search=${encodeURIComponent(ip)}&highlight=true`;
+        }, 800);
+      }
+    });
+
+    // Text modal close button
+    document.getElementById('closeTextModalBtn').addEventListener('click', () => {
+      document.getElementById('textModal').classList.remove('active');
+    });
+
+    // Close modals on background click
+    document.querySelectorAll('.modal').forEach(modal => {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.classList.remove('active');
+          pendingToggle = null;
+          currentEditingQueue = null;
+        }
+      });
+    });
+
+    // Comment Modal Logic
+    let currentEditingQueue = null;
+
+    function openCommentModal(name, comment) {
+      currentEditingQueue = name;
+      document.getElementById('commentQueueName').textContent = name;
+      document.getElementById('commentText').value = comment || '';
+      document.getElementById('commentModal').classList.add('active');
+    }
+
+    function closeCommentModal() {
+      document.getElementById('commentModal').classList.remove('active');
+      currentEditingQueue = null;
+    }
+
+    document.getElementById('insertDateBtn').addEventListener('click', () => {
+      const textarea = document.getElementById('commentText');
+      const now = new Date().toLocaleString();
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const text = textarea.value;
+      const before = text.substring(0, start);
+      const after = text.substring(end, text.length);
+
+      textarea.value = before + now + after;
+      textarea.selectionStart = textarea.selectionEnd = start + now.length;
+      textarea.focus();
+    });
+
+    document.getElementById('cancelCommentBtn').addEventListener('click', closeCommentModal);
+
+    document.getElementById('saveCommentBtn').addEventListener('click', async () => {
+      // Get the queue name from the modal DOM element instead of the variable
+      const queueName = document.getElementById('commentQueueName').textContent;
+
+      if (!queueName) {
+        showStatus("Queue name is missing", "danger");
+        return;
+      }
+
+      const comment = document.getElementById('commentText').value;
+      closeCommentModal();
+      showStatus("Saving comment...", "warning");
+
+      try {
+        const res = await fetch(`${API}/all-queues/comment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: queueName, comment })
+        });
+
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.error || 'Failed to save comment');
+        }
+
+        showStatus("Comment saved successfully", "success");
+        loadData();
+      } catch (err) {
+        showStatus(err.message, "danger");
+      }
+    });
 
     // Initial load
     loadData();
-    setInterval(loadData, 30000); // Refresh every 30 seconds
+    setInterval(loadData, 30000);
   </script>
 </body>
+
 </html>

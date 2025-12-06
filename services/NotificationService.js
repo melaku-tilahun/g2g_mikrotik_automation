@@ -245,6 +245,49 @@ class NotificationService {
             .filter(c => c.enabled)
             .map(c => c.name);
     }
+
+    /**
+     * Send OTP verification code via email for 2FA
+     * @param {string} email - User's email address
+     * @param {string} otp - 6-digit OTP code
+     * @param {string} userName - User's name for personalization
+     */
+    async sendOTPEmail(email, otp, userName) {
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: config.email.user,
+                pass: config.email.pass
+            }
+        });
+
+        const subject = '🔐 Your Login Verification Code';
+        
+        const body = `Hello ${userName},
+
+Your verification code for GPON Monitor login is:
+
+${otp}
+
+This code will expire in 10 minutes.
+
+Security Notice:
+- DO NOT share this code with anyone
+- We will never ask for this code via phone or email
+- If you didn't attempt to login, please secure your account immediately
+
+Best regards,
+GPON Monitor Security Team`;
+
+        await transporter.sendMail({
+            from: `"GPON Monitor Security" <${config.email.user}>`,
+            to: email,
+            subject,
+            text: body
+        });
+
+        logger.info('OTP email sent', { email });
+    }
 }
 
 // Singleton instance

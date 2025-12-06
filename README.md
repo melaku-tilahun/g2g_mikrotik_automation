@@ -184,7 +184,7 @@ c:\projects\g2gauto\
 
 **traffic_log** - Historical traffic data
 - `id` (PK)
-- `name` - Queue name (FK)
+- `name` - all-queues(FK)
 - `rx` - Received bytes
 - `tx` - Transmitted bytes
 - `timestamp` - Unix timestamp
